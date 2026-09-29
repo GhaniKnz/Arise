@@ -13,7 +13,7 @@ import { showOverlay, toast } from "@/lib/system/store";
  * value is stored silently so nothing fires for pre-existing progress.
  */
 export function GameWatcher() {
-  const { ready, profile, ledger, today } = useGame();
+  const { ready, profile, ledger, today, bosses } = useGame();
   const busy = useRef(false);
   const pending = useRef(false);
   const [tick, setTick] = useState(0);
@@ -55,6 +55,24 @@ export function GameWatcher() {
         }
       }
 
+      const defeated = bosses.filter((b) => b.defeated).map((b) => `${b.name}@${b.atKg}`);
+      const pathKey = `${profile.startWeightKg}->${profile.targetWeightKg}`;
+      const seenBosses = await kvGet<string[]>("seen:bosses");
+      if (seenBosses === undefined || (await kvGet<string>("seen:bossPath")) !== pathKey) {
+        // First look, or the goal changed: take the current state as the baseline.
+        await kvSet("seen:bosses", defeated);
+        await kvSet("seen:bossPath", pathKey);
+      } else {
+        const fresh = bosses.filter((b) => b.defeated && !seenBosses.includes(`${b.name}@${b.atKg}`));
+        if (fresh.length || defeated.length !== seenBosses.length) await kvSet("seen:bosses", defeated);
+        const last = fresh.at(-1);
+        if (last) {
+          const next = bosses.find((b) => !b.defeated);
+          showOverlay({ kind: "boss", name: last.name, atKg: last.atKg, xp: fresh.reduce((a, b) => a + b.xp, 0), next: next?.name });
+          cue("levelup");
+        }
+      }
+
       const level = ledger.level.level;
       const seenLevel = await kvGet<number>("seen:level");
       const seenStats = await kvGet<Record<StatKey, number>>("seen:stats");
@@ -80,7 +98,7 @@ export function GameWatcher() {
         setTick((t) => t + 1);
       }
     });
-  }, [ready, profile, ledger, today, tick]);
+  }, [ready, profile, ledger, today, bosses, tick]);
 
   return null;
 }

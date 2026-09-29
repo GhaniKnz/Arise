@@ -1,15 +1,16 @@
 "use client";
 
+import { Beef, Droplet, Leaf, Wheat } from "lucide-react";
 import { ProgressBar } from "@/components/ui/Progress";
 import type { Targets } from "@/lib/db/types";
 import { cn } from "@/lib/utils/cn";
 import { fmtInt } from "@/lib/utils/format";
 
 export const MACROS = [
-  { key: "protein", label: "Protéines", color: "var(--color-protein)" },
-  { key: "carbs", label: "Glucides", color: "var(--color-carbs)" },
-  { key: "fat", label: "Lipides", color: "var(--color-fat)" },
-  { key: "fiber", label: "Fibres", color: "var(--color-fiber)" },
+  { key: "protein", label: "Protéines", color: "var(--color-protein)", icon: Beef },
+  { key: "carbs", label: "Glucides", color: "var(--color-carbs)", icon: Wheat },
+  { key: "fat", label: "Lipides", color: "var(--color-fat)", icon: Droplet },
+  { key: "fiber", label: "Fibres", color: "var(--color-fiber)", icon: Leaf },
 ] as const;
 
 export type MacroKey = (typeof MACROS)[number]["key"];
@@ -25,7 +26,7 @@ export function MacroBars({ totals, targets, compact, className }: { totals: Rec
           <li key={m.key}>
             <div className={cn("mb-1.5 flex items-baseline justify-between gap-2 whitespace-nowrap", compact ? "text-xs" : "text-sm")}>
               <span className="flex min-w-0 items-center gap-1.5 truncate text-ink-2">
-                <span className="size-2 rounded-full" style={{ background: m.color }} aria-hidden />
+                <m.icon className="size-3.5 shrink-0" style={{ color: m.color, filter: `drop-shadow(0 0 4px ${m.color})` }} aria-hidden />
                 {m.label}
               </span>
               <span className="tabular text-ink">

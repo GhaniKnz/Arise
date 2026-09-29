@@ -1,4 +1,4 @@
-import type { Experience, RoutineExercise, RoutineType } from "@/lib/db/types";
+import type { Experience, Routine, RoutineExercise, RoutineType, Session } from "@/lib/db/types";
 
 export const ROUTINE_TYPE_META: Record<RoutineType, { label: string; color: string; short: string }> = {
   push: { label: "Push", color: "#4DA3FF", short: "PSH" },
@@ -10,6 +10,25 @@ export const ROUTINE_TYPE_META: Record<RoutineType, { label: string; color: stri
   cardio: { label: "Cardio", color: "#FB7185", short: "CRD" },
   custom: { label: "Perso", color: "#94A3B8", short: "PRS" },
 };
+
+/** Colors offered in the program editor. */
+export const ROUTINE_COLORS = ["#4DA3FF", "#22D3EE", "#A78BFA", "#8B5CF6", "#F472B6", "#FB7185", "#F97316", "#F5B94A", "#34D399", "#94A3B8"];
+
+/** Default pictogram per type: a muscle silhouette (`m:`) or a glyph (`g:`). */
+export const ROUTINE_TYPE_ICON: Record<RoutineType, string> = {
+  push: "m:chest",
+  pull: "m:back",
+  legs: "m:quads",
+  upper: "m:shoulders",
+  lower: "m:glutes",
+  full: "g:person",
+  cardio: "g:heart",
+  custom: "g:dumbbell",
+};
+
+type Styled = Pick<Routine, "type" | "color" | "icon"> | Pick<Session, "type" | "color" | "icon">;
+export const routineColor = (r: Styled) => r.color ?? ROUTINE_TYPE_META[r.type].color;
+export const routineIcon = (r: Styled) => r.icon ?? ROUTINE_TYPE_ICON[r.type];
 
 export interface RoutineTemplate {
   key: string;
@@ -126,15 +145,41 @@ export const TEMPLATES: Record<string, RoutineTemplate> = {
   },
 };
 
+export interface SplitPreset {
+  key: string;
+  label: string;
+  description: string;
+  days: number;
+  templates: string[];
+  /** Monday→Sunday template keys, null = rest. */
+  schedule: (string | null)[];
+}
+
+export const SPLIT_PRESETS: SplitPreset[] = [
+  { key: "full2", label: "Full Body ×2", description: "2 séances corps complet (A / B)", days: 2, templates: ["fullA", "fullB"], schedule: ["fullA", null, null, "fullB", null, null, null] },
+  { key: "beginner3", label: "Full Body débutant", description: "La même séance 3 fois, pour apprendre les mouvements", days: 3, templates: ["beginnerFull"], schedule: ["beginnerFull", null, "beginnerFull", null, "beginnerFull", null, null] },
+  { key: "full3", label: "Full Body ×3", description: "Corps complet A / B en alternance", days: 3, templates: ["fullA", "fullB"], schedule: ["fullA", null, "fullB", null, "fullA", null, null] },
+  { key: "ppl3", label: "Push / Pull / Legs", description: "Pecs-épaules-triceps, dos-biceps, jambes", days: 3, templates: ["push", "pull", "legs"], schedule: ["push", null, "pull", null, "legs", null, null] },
+  { key: "pp4", label: "Push / Pull", description: "Haut du corps : poussée puis tirage, 2 fois par semaine", days: 4, templates: ["push", "pull"], schedule: ["push", "pull", null, "push", "pull", null, null] },
+  { key: "ul4", label: "Upper / Lower", description: "Haut du corps / bas du corps, 2 fois par semaine", days: 4, templates: ["upper", "lower"], schedule: ["upper", "lower", null, "upper", "lower", null, null] },
+  { key: "ppl_ul5", label: "PPL + Upper / Lower", description: "5 séances, chaque muscle ~2 fois par semaine", days: 5, templates: ["push", "pull", "legs", "upper", "lower"], schedule: ["push", "pull", "legs", null, "upper", "lower", null] },
+  { key: "ppl6", label: "Push / Pull / Legs ×2", description: "6 séances pour pratiquants réguliers", days: 6, templates: ["push", "pull", "legs"], schedule: ["push", "pull", "legs", "push", "pull", "legs", null] },
+];
+
+export const SPLIT_BY_KEY = new Map(SPLIT_PRESETS.map((p) => [p.key, p]));
+
+/** Recommended preset for a number of sessions per week. */
+export function defaultSplitKey(sessionsPerWeek: number, experience: Experience): string {
+  const n = Math.max(2, Math.min(6, sessionsPerWeek));
+  if (n <= 2) return "full2";
+  if (n === 3) return experience === "beginner" ? "beginner3" : "full3";
+  if (n === 4) return "ul4";
+  if (n === 5) return "ppl_ul5";
+  return "ppl6";
+}
+
 /** Weekly split (Mon→Sun) of template keys, null = rest. */
 export function splitFor(sessionsPerWeek: number, experience: Experience): { templates: string[]; schedule: (string | null)[] } {
-  const n = Math.max(2, Math.min(6, sessionsPerWeek));
-  if (n <= 2) return { templates: ["fullA", "fullB"], schedule: ["fullA", null, null, "fullB", null, null, null] };
-  if (n === 3)
-    return experience === "beginner"
-      ? { templates: ["beginnerFull"], schedule: ["beginnerFull", null, "beginnerFull", null, "beginnerFull", null, null] }
-      : { templates: ["fullA", "fullB"], schedule: ["fullA", null, "fullB", null, "fullA", null, null] };
-  if (n === 4) return { templates: ["upper", "lower"], schedule: ["upper", "lower", null, "upper", "lower", null, null] };
-  if (n === 5) return { templates: ["push", "pull", "legs", "upper", "lower"], schedule: ["push", "pull", "legs", null, "upper", "lower", null] };
-  return { templates: ["push", "pull", "legs"], schedule: ["push", "pull", "legs", "push", "pull", "legs", null] };
+  const p = SPLIT_BY_KEY.get(defaultSplitKey(sessionsPerWeek, experience))!;
+  return { templates: p.templates, schedule: p.schedule };
 }

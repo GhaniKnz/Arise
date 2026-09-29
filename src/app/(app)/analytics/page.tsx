@@ -1,6 +1,6 @@
 "use client";
 
-import { ChartNoAxesCombined, Lightbulb } from "lucide-react";
+import { Beef, CalendarCheck, ChartNoAxesCombined, Dumbbell, Flame, Footprints, Lightbulb, Moon } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useGame } from "@/components/providers/GameProvider";
 import { TimeChart } from "@/components/charts/TimeChart";
@@ -73,12 +73,12 @@ export default function AnalyticsPage() {
       />
 
       <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
-        <StatTile label="Calories moy." value={fmtInt(avg(logged.map((d) => d.kcal)))} unit="kcal" hint={`cible ${fmtInt(t.kcal)}`} />
-        <StatTile label="Protéines moy." value={fmtInt(avg(logged.map((d) => d.protein)))} unit="g" hint={`cible ${t.protein}`} />
-        <StatTile label="Pas moy." value={fmtInt(avg(inRange.map((d) => d.steps)))} hint={`cible ${fmtInt(t.steps)}`} />
-        <StatTile label="Sommeil moy." value={fmtSleep(avg(inRange.map((d) => d.sleepMin)))} />
-        <StatTile label="Séances" value={inRange.reduce((a, d) => a + d.sessionsDone, 0)} hint={`${(inRange.reduce((a, d) => a + d.sessionsDone, 0) / (Number(range) / 7)).toLocaleString("fr-FR", { maximumFractionDigits: 1 })}/sem.`} />
-        <StatTile label="Jours saisis" value={`${logged.length}/${inRange.length}`} />
+        <StatTile label="Calories moy." icon={<Flame />} accent="var(--color-warn)" value={fmtInt(avg(logged.map((d) => d.kcal)))} unit="kcal" hint={`cible ${fmtInt(t.kcal)}`} />
+        <StatTile label="Protéines moy." icon={<Beef />} accent="var(--color-protein)" value={fmtInt(avg(logged.map((d) => d.protein)))} unit="g" hint={`cible ${t.protein}`} />
+        <StatTile label="Pas moy." icon={<Footprints />} value={fmtInt(avg(inRange.map((d) => d.steps)))} hint={`cible ${fmtInt(t.steps)}`} />
+        <StatTile label="Sommeil moy." icon={<Moon />} accent="var(--color-violet-2)" value={fmtSleep(avg(inRange.map((d) => d.sleepMin)))} />
+        <StatTile label="Séances" icon={<Dumbbell />} accent="var(--color-good)" value={inRange.reduce((a, d) => a + d.sessionsDone, 0)} hint={`${(inRange.reduce((a, d) => a + d.sessionsDone, 0) / (Number(range) / 7)).toLocaleString("fr-FR", { maximumFractionDigits: 1 })}/sem.`} />
+        <StatTile label="Jours saisis" icon={<CalendarCheck />} accent="var(--color-cyan)" value={`${logged.length}/${inRange.length}`} />
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">

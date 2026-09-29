@@ -1,7 +1,7 @@
 "use client";
 
 import { useLiveQuery } from "dexie-react-hooks";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { db } from "./index";
 import type { Exercise, FoodEntry, FoodItem, Session } from "./types";
 import { EXERCISES, EXERCISE_BY_ID } from "@/lib/data/exercises";
@@ -79,12 +79,17 @@ export function useCustomExercises() {
   return useLiveQuery(() => db.customExercises.toArray(), []);
 }
 
-/** Built-in library merged with the user's custom exercises. */
-export function useExerciseLibrary(): { all: Exercise[]; byId: (id: string) => Exercise | undefined } {
+/**
+ * Built-in library merged with the user's exercises. A user row with a
+ * built-in id is a personal version of that exercise and replaces it.
+ */
+export function useExerciseLibrary(): { all: Exercise[]; byId: (id: string) => Exercise | undefined; customized: (id: string) => boolean } {
   const custom = useCustomExercises();
-  const all = custom?.length ? [...EXERCISES, ...custom] : EXERCISES;
-  const customMap = new Map((custom ?? []).map((c) => [c.id, c as Exercise]));
-  return { all, byId: (id) => EXERCISE_BY_ID.get(id) ?? customMap.get(id) };
+  return useMemo(() => {
+    const customMap = new Map((custom ?? []).map((c) => [c.id, c as Exercise]));
+    const all = customMap.size ? [...EXERCISES.map((e) => customMap.get(e.id) ?? e), ...(custom ?? []).filter((c) => !EXERCISE_BY_ID.has(c.id))] : EXERCISES;
+    return { all, byId: (id: string) => customMap.get(id) ?? EXERCISE_BY_ID.get(id), customized: (id: string) => customMap.has(id) };
+  }, [custom]);
 }
 
 export function useCardio(date?: DayKey) {

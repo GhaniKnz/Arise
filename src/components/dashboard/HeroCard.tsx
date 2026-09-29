@@ -5,6 +5,7 @@ import { motion } from "motion/react";
 import { useGame } from "@/components/providers/GameProvider";
 import { RankBadge, XpBar } from "@/components/game/LevelBadge";
 import { AnimatedNumber } from "@/components/ui/AnimatedNumber";
+import { Sweep } from "@/components/ui/Effects";
 import { InfoTip } from "@/components/ui/Feedback";
 import { Ring } from "@/components/ui/Progress";
 import { RANK_META, rankFor, titleFor } from "@/lib/domain/game";
@@ -18,6 +19,7 @@ export function HeroCard() {
   return (
     <section className="panel panel-glow hud relative overflow-hidden p-4 sm:p-6" aria-label="Statut du chasseur">
       <div className="pointer-events-none absolute -top-24 -right-16 size-64 rounded-full bg-[radial-gradient(circle,rgb(139_92_246/0.25),transparent_65%)]" aria-hidden />
+      <Sweep delay={1} duration={8} />
       <div className="relative flex items-center gap-4">
         <Link href="/status" aria-label="Voir mon statut" className="shrink-0">
           <RankBadge level={lvl.level} size="lg" />
@@ -25,7 +27,7 @@ export function HeroCard() {
         <div className="min-w-0 flex-1">
           <p className="text-xs text-ink-3 first-letter:uppercase">{formatDayLong(today)}</p>
           <motion.h1 initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="truncate font-display text-2xl font-bold text-ink sm:text-3xl">
-            {greeting()} <span className="text-gradient">{profile?.name}</span>
+            {greeting()} <span className="text-shimmer">{profile?.name}</span>
           </motion.h1>
           <p className="mt-0.5 text-sm leading-snug text-ink-2">
             <span className="font-display font-semibold whitespace-nowrap text-ink">LEVEL {lvl.level}</span>

@@ -39,12 +39,35 @@ export function PanelHeader({ title, icon, action, subtitle, className }: PanelH
   );
 }
 
-export function StatTile({ label, value, unit, hint, accent, className }: { label: string; value: ReactNode; unit?: string; hint?: ReactNode; accent?: string; className?: string }) {
+export function StatTile({
+  label,
+  value,
+  unit,
+  hint,
+  accent,
+  icon,
+  className,
+}: {
+  label: string;
+  value: ReactNode;
+  unit?: string;
+  hint?: ReactNode;
+  accent?: string;
+  /** Small pictogram shown before the label, tinted with `accent`. */
+  icon?: ReactNode;
+  className?: string;
+}) {
   return (
     <div className={cn("rounded-2xl border border-line bg-deep/60 px-3 py-2.5", className)}>
       <div className="flex items-center gap-1.5 text-[11px] font-medium text-ink-3">
-        {accent && <span className="size-1.5 rounded-full" style={{ background: accent }} aria-hidden />}
-        {label}
+        {icon ? (
+          <span className="icon-glow flex shrink-0 [&>svg]:size-3.5" style={{ color: accent ?? "var(--color-arise)" }} aria-hidden>
+            {icon}
+          </span>
+        ) : (
+          accent && <span className="size-1.5 rounded-full" style={{ background: accent }} aria-hidden />
+        )}
+        <span className="truncate">{label}</span>
       </div>
       <div className="mt-0.5 flex items-baseline gap-1">
         <span className="font-display text-lg font-semibold text-ink">{value}</span>

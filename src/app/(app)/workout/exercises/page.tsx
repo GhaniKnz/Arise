@@ -1,13 +1,14 @@
 "use client";
 
-import { ArrowLeft, Search } from "lucide-react";
+import { ArrowLeft, Plus, Search, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { EquipmentIcon } from "@/components/icons/EquipmentIcon";
-import { MuscleIcon } from "@/components/icons/MuscleIcon";
+import { ExerciseIcon } from "@/components/icons/ExerciseIcon";
+import { ExerciseEditorSheet } from "@/components/workout/ExerciseEditorSheet";
 import { filterExercises } from "@/components/workout/ExercisePickerSheet";
-import { IconButton } from "@/components/ui/Button";
+import { Button, IconButton } from "@/components/ui/Button";
 import { Chip, TextInput } from "@/components/ui/Fields";
 import { EmptyState } from "@/components/ui/Feedback";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -17,7 +18,8 @@ import type { Equipment, Muscle } from "@/lib/db/types";
 
 export default function ExercisesPage() {
   const router = useRouter();
-  const { all } = useExerciseLibrary();
+  const { all, customized } = useExerciseLibrary();
+  const [creating, setCreating] = useState(false);
   const [q, setQ] = useState("");
   const [muscle, setMuscle] = useState<Muscle | null>(null);
   const [equipment, setEquipment] = useState<Equipment | null>(null);
@@ -30,7 +32,17 @@ export default function ExercisesPage() {
           <ArrowLeft />
         </IconButton>
       </div>
-      <PageHeader kicker="Workout" title="Exercices" subtitle={`${all.length} exercices · consignes et muscles ciblés`} />
+      <PageHeader
+        kicker="Workout"
+        title="Exercices"
+        subtitle={`${all.length} exercices · touche un exercice pour le voir ou le modifier`}
+        action={
+          <Button size="sm" onClick={() => setCreating(true)}>
+            <Plus /> Créer
+          </Button>
+        }
+      />
+      <ExerciseEditorSheet open={creating} onClose={() => setCreating(false)} onSaved={(e) => router.push(`/workout/exercises/${encodeURIComponent(e.id)}`)} />
       <div className="relative mb-3">
         <Search className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-ink-3" />
         <TextInput value={q} onChange={(e) => setQ(e.target.value)} placeholder="Rechercher un exercice" className="pl-10" aria-label="Rechercher un exercice" />
@@ -56,8 +68,13 @@ export default function ExercisesPage() {
         <ul className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-4">
           {list.map((e) => (
             <li key={e.id}>
-              <Link href={`/workout/exercises/${e.id}`} className="panel flex h-full flex-col items-center p-3 text-center transition hover:border-arise/40 active:scale-[0.98]">
-                <MuscleIcon primary={e.primary} secondary={e.secondary} className="h-20 w-14" />
+              <Link href={`/workout/exercises/${encodeURIComponent(e.id)}`} className="panel card-hover relative flex h-full flex-col items-center p-3 text-center active:scale-[0.98]">
+                {customized(e.id) && (
+                  <span className="absolute top-2 right-2 text-violet-2" title="Personnalisé">
+                    <Sparkles className="size-3.5" />
+                  </span>
+                )}
+                <ExerciseIcon exercise={e} className="h-20 w-14" />
                 <p className="mt-2 line-clamp-2 text-sm leading-tight font-medium text-ink">{e.name}</p>
                 <p className="mt-1 flex items-center gap-1 text-[11px] text-ink-3">
                   <EquipmentIcon equipment={e.equipment} className="size-3.5" /> {MUSCLE_LABEL[e.primary]}
@@ -68,7 +85,7 @@ export default function ExercisesPage() {
           ))}
         </ul>
       ) : (
-        <EmptyState title="Aucun exercice" description="Modifie les filtres ou crée un exercice depuis une séance." />
+        <EmptyState title="Aucun exercice" description="Modifie les filtres ou crée ton propre exercice." />
       )}
     </>
   );

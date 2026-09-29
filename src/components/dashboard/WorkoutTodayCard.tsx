@@ -1,15 +1,17 @@
 "use client";
 
-import { CheckCircle2, Dumbbell, Moon, Play } from "lucide-react";
+import { CheckCircle2, Dumbbell, Layers, Moon, Pencil, Play } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useGame } from "@/components/providers/GameProvider";
-import { MuscleIcon } from "@/components/icons/MuscleIcon";
+import { ExerciseIcon, RoutineIcon } from "@/components/icons/ExerciseIcon";
 import { WeekStrip } from "@/components/workout/WeekStrip";
 import { Button, LinkButton } from "@/components/ui/Button";
 import { Panel, PanelHeader } from "@/components/ui/Panel";
 import { useActiveSession, useExerciseLibrary, useRoutines } from "@/lib/db/hooks";
 import { startSession } from "@/lib/db/repos/workout";
+import { routineColor, routineIcon } from "@/lib/data/routines";
 import { sessionMinutes } from "@/lib/domain/daily";
 import { weekdayIndex } from "@/lib/utils/date";
 import { fmtDuration, fmtInt } from "@/lib/utils/format";
@@ -65,14 +67,30 @@ export function WorkoutTodayCard() {
       ) : routine ? (
         <div className="space-y-3">
           <div className="flex items-center justify-between gap-3">
-            <div className="min-w-0">
-              <p className="font-display text-xl font-bold text-ink">{routine.name}</p>
-              <p className="text-xs text-ink-3">
-                {routine.exercises.length} exercices · {routine.exercises.reduce((a, e) => a + e.sets, 0)} séries
-              </p>
-            </div>
-            <Button onClick={start} disabled={starting}>
-              <Play /> Commencer
+            <Link href={`/workout/routines/${routine.id}`} className="group flex min-w-0 items-center gap-3" aria-label={`Modifier ${routine.name}`}>
+              <span
+                className="flex size-12 shrink-0 items-center justify-center rounded-2xl border bg-void/50"
+                style={{ borderColor: `color-mix(in srgb, ${routineColor(routine)} 60%, transparent)`, boxShadow: `0 0 18px -6px ${routineColor(routine)}` }}
+              >
+                <RoutineIcon icon={routineIcon(routine)} color={routineColor(routine)} className="size-8" />
+              </span>
+              <span className="min-w-0">
+                <span className="flex items-center gap-1.5">
+                  <span className="truncate font-display text-xl font-bold text-ink">{routine.name}</span>
+                  <Pencil className="size-3.5 shrink-0 text-ink-3 transition group-hover:text-arise" />
+                </span>
+                <span className="flex items-center gap-2.5 text-xs text-ink-3">
+                  <span className="flex items-center gap-1">
+                    <Dumbbell className="size-3" /> {routine.exercises.length}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <Layers className="size-3" /> {routine.exercises.reduce((a, e) => a + e.sets, 0)} séries
+                  </span>
+                </span>
+              </span>
+            </Link>
+            <Button onClick={start} disabled={starting} className="shrink-0">
+              <Play /> Go
             </Button>
           </div>
           <ul className="flex gap-1.5 overflow-x-auto pb-1 no-scrollbar" aria-label="Exercices prévus">
@@ -81,7 +99,7 @@ export function WorkoutTodayCard() {
               if (!ex) return null;
               return (
                 <li key={e.exerciseId} className="flex w-20 shrink-0 flex-col items-center gap-1 rounded-xl border border-line bg-white/[0.02] px-1.5 py-2" title={ex.name}>
-                  <MuscleIcon primary={ex.primary} secondary={ex.secondary} className="h-10 w-7" />
+                  <ExerciseIcon exercise={ex} className="h-10 w-7" />
                   <span className="line-clamp-2 text-center text-[10px] leading-tight text-ink-2">{ex.name}</span>
                 </li>
               );

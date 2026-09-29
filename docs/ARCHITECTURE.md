@@ -103,7 +103,9 @@ Valeurs **dérivées** (non stockées) : XP, niveau, rang, stats RPG, quêtes, s
 * **Macros** : protéines 1,8–2,2 g/kg selon objectif, lipides ~27 % (≥ 0,6 g/kg), glucides = reste, fibres 14 g/1000 kcal.
 * **Nutrition Score (0–100)** : densité protéique, densité calorique, fibres, sucres, AGS, sel, niveau de transformation (NOVA), pondéré selon l'objectif. Libellés non culpabilisants : Excellent / Très bon / Correct / À doser / Plaisir occasionnel.
 * **Score du jour** : calories 25 %, protéines 20 %, entraînement 20 %, pas 15 %, sommeil 10 %, hydratation 10 %. ≥ 70 = jour validé (streak).
-* **XP** : quêtes (pas 80, protéines 80, calories 80, eau 50, séance prévue 120, sommeil 60) + bonus « toutes les quêtes » 200 + séance terminée 100 + PR 40 (max 3/jour) + cardio 60 + pesée 20 + paliers de streak. Niveau L→L+1 : `300 + 100·L` XP. Rangs E→S.
+* **XP** : quêtes (pas 80, protéines 80, calories 80, eau 50, séance prévue 120, sommeil 60) + bonus « toutes les quêtes » 200 + séance terminée 100 + PR 40 (max 3/jour) + cardio 60 + pesée 20 + paliers de streak + boss de palier 150 (boss final 300). Niveau L→L+1 : `300 + 100·L` XP. Rangs E→S.
+* **Donjon de l'objectif** (`domain/bosses.ts`) : l'écart départ → objectif est découpé en 3 à 6 paliers « ronds » (0,5 / 1 / 2 / 2,5 / 5 kg…), chacun gardé par un boss. Un boss tombe le premier jour où la **moyenne 7 jours** franchit son palier (une pesée chanceuse ne suffit pas, une mauvaise ne l'annule pas).
+* **Progression par série** : chaque série validée est comparée à la même série de la séance précédente (plus de charge, ou plus de reps à charge égale) → badge « ▲ +2,5 kg », effet et notification ; les records absolus déclenchent l'écran RECORD.
 * **Stats RPG** : STR (séances, PR), END (cardio), ACT (pas), DISC (quêtes complètes, pesées, streak), REC (sommeil, eau), NUT (calories, protéines).
 * **Tendance** : moyenne mobile 7 j + régression linéaire → kg/semaine.
 * **Maintenance adaptative** : `apport moyen − Δtendance × 7700 / jours` sur 14–28 jours.

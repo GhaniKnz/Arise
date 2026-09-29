@@ -277,9 +277,11 @@ export interface LedgerInput {
   quests: QuestId[];
   prsByDate: Map<DayKey, number>;
   today: DayKey;
+  /** Weight-goal bosses defeated (see bosses.ts). */
+  bossEvents?: { date: DayKey; name: string; xp: number }[];
 }
 
-export function buildLedger({ days, targets, goal, quests, prsByDate, today }: LedgerInput): Ledger {
+export function buildLedger({ days, targets, goal, quests, prsByDate, today, bossEvents = [] }: LedgerInput): Ledger {
   const sorted = [...days].sort((a, b) => a.date.localeCompare(b.date));
   const map = new Map<DayKey, DayLedger>();
   const events: XpEvent[] = [];
@@ -308,6 +310,7 @@ export function buildLedger({ days, targets, goal, quests, prsByDate, today }: L
     for (let i = 0; i < prs; i++) push({ date: day.date, amount: 40, stat: "STR", label: "Record personnel" });
     if (day.cardioMin >= 15) push({ date: day.date, amount: 60, stat: "END", label: "Cardio" });
     if (day.weightKg != null) push({ date: day.date, amount: 20, stat: "DISC", label: "Pesée" });
+    for (const b of bossEvents) if (b.date === day.date) push({ date: day.date, amount: b.xp, stat: "DISC", label: `Boss vaincu : ${b.name}` });
 
     const validated = score.tracked && score.total >= VALIDATED_DAY_SCORE;
     if (validated) {

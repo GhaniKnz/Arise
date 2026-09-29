@@ -37,10 +37,10 @@ export function RestTimerBar({ active, remaining, total, done, onAdd, onSkip, on
               </MiniRing>
               <div className="min-w-0 flex-1">
                 <p className={cn("font-display text-3xl font-bold tabular", done ? "text-good" : "text-ink")}>{done ? "GO !" : fmtClock(remaining)}</p>
-                <div className="mt-1 flex gap-1">
+                <div className="mt-1 flex gap-1 overflow-x-auto no-scrollbar">
                   {[60, 90, 120, 180].map((s) => (
-                    <button key={s} type="button" onClick={() => onPreset(s)} className={cn("rounded-md px-1.5 py-0.5 text-[11px] font-medium", total === s ? "bg-arise/20 text-ink" : "text-ink-3 hover:text-ink-2")}>
-                      {s < 120 ? `${s}s` : `${s / 60}min`}
+                    <button key={s} type="button" onClick={() => onPreset(s)} className={cn("shrink-0 rounded-md px-1.5 py-0.5 text-[11px] font-medium", total === s ? "bg-arise/20 text-ink" : "text-ink-3 hover:text-ink-2")}>
+                      {s < 120 ? `${s}s` : `${s / 60}m`}
                     </button>
                   ))}
                 </div>

@@ -1,7 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion } from "motion/react";
-import { ArrowLeft, ArrowRight, Dumbbell, Flame, Scale, Sparkles, Swords, Target } from "lucide-react";
+import { ArrowLeft, ArrowRight, CalendarRange, Dumbbell, Flame, Scale, Sparkles, Swords, Target } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { AriseMark } from "@/components/icons/AriseLogo";
@@ -10,11 +10,13 @@ import { useGame } from "@/components/providers/GameProvider";
 import { Button } from "@/components/ui/Button";
 import { ChoiceCard, Chip, Field, NumberInput, Segmented, TextInput } from "@/components/ui/Fields";
 import { Notice } from "@/components/ui/Feedback";
+import { defaultSplitKey, SPLIT_BY_KEY, SPLIT_PRESETS } from "@/lib/data/routines";
 import { createProfile, previewTargets, seedDemo, type OnboardingAnswers } from "@/lib/db/seed";
 import type { ActivityLevel, Experience, GoalType } from "@/lib/db/types";
 import { ACTIVITY_LABELS, bmi, GOAL_LABELS } from "@/lib/domain/energy";
 import { toast } from "@/lib/system/store";
 import { cn } from "@/lib/utils/cn";
+import { WEEKDAYS_SHORT } from "@/lib/utils/date";
 import { fmtDec, fmtInt } from "@/lib/utils/format";
 
 const GOAL_ICONS: Record<GoalType, React.ReactNode> = {
@@ -47,6 +49,7 @@ export default function OnboardingPage() {
   const [dir, setDir] = useState(1);
   const [a, setA] = useState<OnboardingAnswers>(DEFAULTS);
   const [busy, setBusy] = useState(false);
+  const [splitKey, setSplitKey] = useState<string | null>(null);
 
   useEffect(() => {
     if (ready && profile && !busy) router.replace("/");
@@ -78,7 +81,8 @@ export default function OnboardingPage() {
   const finish = async () => {
     setBusy(true);
     try {
-      await createProfile(a);
+      const preset = SPLIT_BY_KEY.get(splitKey ?? defaultSplitKey(a.sessionsPerWeek, a.experience));
+      await createProfile(a, preset && preset.days === a.sessionsPerWeek ? { split: { templates: preset.templates, schedule: preset.schedule } } : {});
       router.replace("/");
     } catch (e) {
       setBusy(false);
@@ -246,6 +250,20 @@ export default function OnboardingPage() {
                       ))}
                     </div>
                   </Field>
+                  <div className="space-y-2.5">
+                    <p className="text-[13px] font-medium text-ink-2">Organisation de la semaine</p>
+                    {SPLIT_PRESETS.filter((p) => p.days === a.sessionsPerWeek).map((p) => (
+                      <ChoiceCard
+                        key={p.key}
+                        selected={(splitKey && SPLIT_BY_KEY.get(splitKey)?.days === a.sessionsPerWeek ? splitKey : defaultSplitKey(a.sessionsPerWeek, a.experience)) === p.key}
+                        onClick={() => setSplitKey(p.key)}
+                        title={p.label}
+                        description={`${p.description} · ${p.schedule.map((k, i) => (k ? WEEKDAYS_SHORT[i] : null)).filter(Boolean).join(", ")}`}
+                        icon={<CalendarRange />}
+                      />
+                    ))}
+                    <p className="text-[11px] text-ink-3">Tu pourras renommer chaque séance, changer les exercices et les jours à tout moment.</p>
+                  </div>
                   <div className="space-y-2.5">
                     <p className="text-[13px] font-medium text-ink-2">Expérience en musculation</p>
                     {(

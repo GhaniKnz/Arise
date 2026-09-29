@@ -1,6 +1,8 @@
 import { db } from "../index";
 import { insert, patch, remove, stamp } from "../repo";
-import type { CardioSession, Routine, RoutineExercise, RoutineType, Session, WorkoutSet } from "../types";
+import type { CardioSession, CustomExercise, Exercise, Profile, Routine, RoutineExercise, RoutineType, Session, WorkoutSet } from "../types";
+import { SPLIT_BY_KEY, TEMPLATES } from "@/lib/data/routines";
+import { EXERCISE_BY_ID } from "@/lib/data/exercises";
 import { nowIso } from "@/lib/utils/id";
 import { todayKey, type DayKey } from "@/lib/utils/date";
 
@@ -47,6 +49,8 @@ export async function startSession(opts: { routine?: Routine; name?: string; typ
     routineId: routine?.id,
     name: routine?.name ?? opts.name ?? "Séance libre",
     type: routine?.type ?? opts.type ?? "custom",
+    color: routine?.color,
+    icon: routine?.icon,
     startedAt: nowIso(),
     status: "active",
     exerciseIds: routine?.exercises.map((e) => e.exerciseId) ?? [],
@@ -77,6 +81,12 @@ export async function removeExerciseFromSession(session: Session, exerciseId: st
 
 export async function reorderSessionExercises(session: Session, exerciseIds: string[]) {
   await patch(db.sessions, session.id, { exerciseIds });
+}
+
+/** Renames a session; optionally the program it came from too. */
+export async function renameSession(session: Session, name: string, alsoRoutine: boolean) {
+  await patch(db.sessions, session.id, { name });
+  if (alsoRoutine && session.routineId && (await db.routines.get(session.routineId))) await patch(db.routines, session.routineId, { name });
 }
 
 export async function addSet(session: Session, exerciseId: string, warmup = false) {
@@ -136,13 +146,74 @@ export async function logPastSession(opts: { date: DayKey; routine?: Routine; na
 
 /* ─────────────── Routines ─────────────── */
 
-export async function saveRoutine(r: { id?: string; name: string; type: RoutineType; exercises: RoutineExercise[]; notes?: string }) {
+export async function saveRoutine(r: { id?: string; name: string; type: RoutineType; exercises: RoutineExercise[]; notes?: string; color?: string; icon?: string }) {
   if (r.id) {
-    await patch(db.routines, r.id, { name: r.name, type: r.type, exercises: r.exercises, notes: r.notes });
+    await patch(db.routines, r.id, { name: r.name, type: r.type, exercises: r.exercises, notes: r.notes, color: r.color, icon: r.icon });
     return r.id;
   }
-  return (await insert<Routine>(db.routines, r)).id;
+  const { id: _id, ...rest } = r;
+  return (await insert<Routine>(db.routines, rest)).id;
 }
+
+export async function duplicateRoutine(r: Routine) {
+  const { id: _id, createdAt: _c, updatedAt: _u, ...rest } = r;
+  return (await insert<Routine>(db.routines, { ...rest, name: `${r.name} (copie)`, exercises: r.exercises.map((e) => ({ ...e })) })).id;
+}
+
+/**
+ * Applies a weekly split: reuses programs that already carry the template's
+ * name, creates the missing ones, and rewrites the schedule.
+ */
+export async function applySplitPreset(key: string) {
+  const preset = SPLIT_BY_KEY.get(key);
+  if (!preset) return;
+  const existing = await db.routines.toArray();
+  const idByKey = new Map<string, string>();
+  const created: Routine[] = [];
+  for (const k of preset.templates) {
+    const tpl = TEMPLATES[k];
+    const match = existing.find((r) => r.name.trim().toLowerCase() === tpl.name.toLowerCase());
+    if (match) idByKey.set(k, match.id);
+    else {
+      const row = stamp<Routine>({ name: tpl.name, type: tpl.type, exercises: tpl.exercises.map((e) => ({ ...e })) });
+      created.push(row);
+      idByKey.set(k, row.id);
+    }
+  }
+  const schedule = preset.schedule.map((k) => (k ? (idByKey.get(k) ?? null) : null));
+  await db.transaction("rw", db.routines, db.profile, async () => {
+    if (created.length) await db.routines.bulkAdd(created);
+    await patch(db.profile, "me", { schedule, sessionsPerWeek: schedule.filter(Boolean).length } as Partial<Profile>);
+  });
+  return { created: created.length };
+}
+
+/* ─────────────── Exercises ─────────────── */
+
+/**
+ * Saves a custom exercise, or a personal version of a built-in one (same id:
+ * the library prefers the user's row, so history and records stay attached).
+ */
+export async function saveExercise(ex: Exercise) {
+  const existing = await db.customExercises.get(ex.id);
+  if (existing) {
+    const { id: _id, ...changes } = ex;
+    await patch(db.customExercises, ex.id, changes as Partial<CustomExercise>);
+    return ex.id;
+  }
+  return (await insert<CustomExercise>(db.customExercises, ex)).id;
+}
+
+export function newExerciseId() {
+  return `custom:${crypto.randomUUID?.() ?? Date.now().toString(36)}`;
+}
+
+/** Removes a custom exercise, or restores the original of a built-in one. */
+export async function deleteExercise(id: string) {
+  await remove("customExercises", [id]);
+}
+
+export const isBuiltInExercise = (id: string) => EXERCISE_BY_ID.has(id);
 
 export async function deleteRoutine(id: string) {
   await remove("routines", [id]);

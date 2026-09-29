@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "motion/react";
-import { ArrowLeft, RotateCcw, Trash2, Trophy, Zap } from "lucide-react";
+import { ArrowLeft, Layers, RotateCcw, Timer, Trash2, Trophy, Weight, Zap } from "lucide-react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useMemo, useState } from "react";
 import { useGame } from "@/components/providers/GameProvider";
@@ -68,10 +68,10 @@ function HistoryDetail() {
       <PageHeader kicker={formatDayLong(session.date)} title={session.name} />
 
       <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
-        <StatTile label="Durée" value={fmtDuration(sessionMinutes(session) * 60)} />
-        <StatTile label="Séries" value={working.length} />
-        <StatTile label="Volume" value={fmtInt(working.reduce((a, s) => a + s.weightKg * s.reps, 0))} unit="kg" />
-        <StatTile label="Records" value={sessionPRs.length} accent="var(--color-warn)" hint={xp ? `${fmtInt(xp)} XP ce jour-là` : undefined} />
+        <StatTile label="Durée" icon={<Timer />} value={fmtDuration(sessionMinutes(session) * 60)} />
+        <StatTile label="Séries" icon={<Layers />} accent="var(--color-violet-2)" value={working.length} />
+        <StatTile label="Volume" icon={<Weight />} accent="var(--color-cyan)" value={fmtInt(working.reduce((a, s) => a + s.weightKg * s.reps, 0))} unit="kg" />
+        <StatTile label="Records" icon={<Trophy />} value={sessionPRs.length} accent="var(--color-warn)" hint={xp ? `${fmtInt(xp)} XP ce jour-là` : undefined} />
       </div>
 
       {sessionPRs.length > 0 && (

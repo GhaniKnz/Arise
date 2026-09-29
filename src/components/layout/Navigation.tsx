@@ -8,6 +8,7 @@ import { useGame } from "@/components/providers/GameProvider";
 import { AriseMark, AriseWordmark } from "@/components/icons/AriseLogo";
 import { RankBadge, XpBar } from "@/components/game/LevelBadge";
 import { IconButton } from "@/components/ui/Button";
+import { Sweep } from "@/components/ui/Effects";
 import { isActive, PRIMARY_NAV, SECONDARY_NAV, type NavItem } from "@/lib/nav";
 import { openSheet } from "@/lib/system/ui";
 import { titleFor } from "@/lib/domain/game";
@@ -30,7 +31,7 @@ function SideLink({ item, active }: { item: NavItem; active: boolean }) {
           <span className="absolute top-2 bottom-2 -left-px w-[3px] rounded-full bg-arise shadow-[0_0_10px_#4da3ff]" />
         </motion.span>
       )}
-      <Icon className={cn("relative size-[18px]", active && "text-arise drop-shadow-[0_0_6px_rgb(77_163_255/0.8)]")} />
+      <Icon className={cn("relative size-[18px] transition-transform group-hover:scale-110", active && "icon-glow text-arise")} />
       <span className="relative">{item.label}</span>
     </Link>
   );
@@ -48,7 +49,8 @@ export function Sidebar() {
       </div>
 
       {profile && (
-        <Link href="/status" className="mx-4 mb-4 block rounded-2xl border border-line bg-deep/60 p-3 transition hover:border-arise/40">
+        <Link href="/status" className="card-hover relative mx-4 mb-4 block overflow-hidden rounded-2xl border border-line bg-deep/60 p-3">
+          <Sweep delay={2} duration={9} />
           <div className="flex items-center gap-3">
             <RankBadge level={ledger.level.level} />
             <div className="min-w-0 flex-1">
@@ -66,8 +68,9 @@ export function Sidebar() {
         <button
           type="button"
           onClick={() => openSheet("menu")}
-          className="bg-arise-gradient flex h-10 w-full items-center justify-center gap-2 rounded-xl text-sm font-semibold text-white shadow-[0_0_0_1px_rgb(120_170_255/0.45),0_8px_24px_-8px_rgb(77_163_255/0.7)] transition hover:brightness-110 active:scale-[0.98]"
+          className="bg-arise-gradient relative flex h-10 w-full items-center justify-center gap-2 overflow-hidden rounded-xl text-sm font-semibold text-white shadow-[0_0_0_1px_rgb(120_170_255/0.45),0_8px_24px_-8px_rgb(77_163_255/0.7)] transition hover:brightness-110 active:scale-[0.98]"
         >
+          <Sweep delay={0.5} duration={5} />
           <Plus className="size-4" /> Ajouter
         </button>
       </div>
@@ -84,7 +87,7 @@ export function Sidebar() {
 
       <div className="border-t border-line px-5 py-4">
         <div className="flex items-center gap-2 text-sm text-ink-2">
-          <Flame className="size-4 text-warn" />
+          <Flame className={cn("size-4 text-warn", ledger.streak.current > 0 && "flame-flicker")} />
           <span>
             Série : <strong className="text-ink">{ledger.streak.current}</strong> jour{ledger.streak.current > 1 ? "s" : ""}
           </span>
@@ -98,20 +101,34 @@ export function TopBar() {
   const { profile, ledger } = useGame();
   return (
     <header className="sticky top-0 z-30 flex h-14 items-center justify-between gap-3 border-b border-line/60 bg-void/70 px-4 pt-[var(--safe-top)] backdrop-blur-xl lg:hidden" style={{ height: "calc(3.5rem + var(--safe-top))" }}>
+      <span className="scanline" aria-hidden />
       <Link href="/" className="flex items-center gap-2" aria-label="ARISE — accueil">
-        <AriseMark className="size-7" />
-        <span className="text-glow font-display text-[15px] font-bold tracking-[0.3em]">ARISE</span>
+        <AriseMark className="aura size-7" />
+        <span className="text-shimmer font-display text-[15px] font-bold tracking-[0.3em]">ARISE</span>
       </Link>
       <div className="flex items-center gap-1.5">
         {profile && (
           <>
-            <span className="flex items-center gap-1 rounded-full border border-line bg-deep/60 px-2 py-1 text-xs font-semibold text-ink-2" aria-label={`Série de ${ledger.streak.current} jours`}>
-              <Flame className="size-3.5 text-warn" />
+            <span
+              className={cn(
+                "flex items-center gap-1 rounded-full border px-2 py-1 text-xs font-semibold",
+                ledger.streak.current > 0 ? "border-warn/40 bg-warn/10 text-ink shadow-[0_0_12px_-4px_rgb(251_191_36/0.7)]" : "border-line bg-deep/60 text-ink-2",
+              )}
+              aria-label={`Série de ${ledger.streak.current} jours`}
+            >
+              <Flame className={cn("size-3.5 text-warn", ledger.streak.current > 0 && "flame-flicker")} />
               {ledger.streak.current}
             </span>
-            <Link href="/status" className="flex items-center gap-1.5 rounded-full border border-line bg-deep/60 py-0.5 pr-2.5 pl-0.5" aria-label={`Niveau ${ledger.level.level}`}>
-              <RankBadge level={ledger.level.level} size="sm" />
-              <span className="font-display text-xs font-semibold text-ink">Niv. {ledger.level.level}</span>
+            <Link href="/status" className="ring-spin flex rounded-full" style={{ "--ring-color": "#4da3ff" } as React.CSSProperties} aria-label={`Niveau ${ledger.level.level}`}>
+              <span className="relative flex items-center gap-1.5 overflow-hidden rounded-full border border-line bg-deep py-0.5 pr-2.5 pl-0.5">
+                <RankBadge level={ledger.level.level} size="sm" />
+                <span className="flex flex-col">
+                  <span className="font-display text-xs leading-tight font-semibold text-ink">Niv. {ledger.level.level}</span>
+                  <span className="h-[3px] w-10 overflow-hidden rounded-full bg-white/10">
+                    <span className="block h-full rounded-full bg-gradient-to-r from-arise to-violet shadow-[0_0_6px_#4da3ff]" style={{ width: `${Math.round(ledger.level.progress * 100)}%` }} />
+                  </span>
+                </span>
+              </span>
             </Link>
           </>
         )}
@@ -159,7 +176,9 @@ export function BottomNav() {
                 {active && (
                   <motion.span layoutId="bottom-active" className="absolute top-0 h-0.5 w-8 rounded-full bg-arise shadow-[0_0_12px_#4da3ff]" transition={{ type: "spring", stiffness: 500, damping: 36 }} />
                 )}
-                <Icon className={cn("size-[22px]", active && "text-arise drop-shadow-[0_0_8px_rgb(77_163_255/0.8)]")} />
+                <motion.span key={String(active)} initial={active ? { scale: 0.6, y: 4 } : false} animate={{ scale: 1, y: 0 }} transition={{ type: "spring", stiffness: 520, damping: 18 }} className="flex">
+                  <Icon className={cn("size-[22px]", active && "icon-glow text-arise")} />
+                </motion.span>
                 <span className="uppercase">{item.short ?? item.label}</span>
               </Link>
             </li>

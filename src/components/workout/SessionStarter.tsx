@@ -4,14 +4,14 @@ import { CalendarPlus, Dumbbell, Play, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { useGame } from "@/components/providers/GameProvider";
-import { MuscleIcon } from "@/components/icons/MuscleIcon";
+import { ExerciseIcon, RoutineIcon } from "@/components/icons/ExerciseIcon";
 import { Button } from "@/components/ui/Button";
 import { Field, NumberInput, Select, TextInput } from "@/components/ui/Fields";
 import { EmptyState } from "@/components/ui/Feedback";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Panel } from "@/components/ui/Panel";
 import { Sheet } from "@/components/ui/Sheet";
-import { ROUTINE_TYPE_META } from "@/lib/data/routines";
+import { routineColor, routineIcon } from "@/lib/data/routines";
 import { useExerciseLibrary, useRoutines } from "@/lib/db/hooks";
 import { db } from "@/lib/db";
 import { stamp } from "@/lib/db/repo";
@@ -92,13 +92,15 @@ export function SessionStarter({ onStarted, onPastCreated }: { onStarted: () => 
         )}
         {sorted.map((r) => {
           const planned = r.id === plannedId;
-          const meta = ROUTINE_TYPE_META[r.type];
+          const color = routineColor(r);
           return (
             <Panel key={r.id} glow={planned} className={cn("flex items-center gap-4", planned && "hud")}>
+              <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl border bg-void/50" style={{ borderColor: `color-mix(in srgb, ${color} 60%, transparent)`, boxShadow: `0 0 18px -6px ${color}` }}>
+                <RoutineIcon icon={routineIcon(r)} color={color} className="size-8" />
+              </span>
               <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2">
-                  <span className="size-2.5 rounded-full" style={{ background: meta.color, boxShadow: `0 0 8px ${meta.color}` }} />
-                  <p className="font-display text-lg font-bold text-ink">{r.name}</p>
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="truncate font-display text-lg font-bold text-ink">{r.name}</p>
                   {planned && <span className="rounded-full bg-arise/15 px-2 py-0.5 text-[10px] font-semibold text-arise uppercase">Prévue aujourd&apos;hui</span>}
                 </div>
                 <p className="mt-0.5 text-xs text-ink-3">
@@ -107,7 +109,7 @@ export function SessionStarter({ onStarted, onPastCreated }: { onStarted: () => 
                 <div className="mt-2 flex gap-1">
                   {r.exercises.slice(0, 7).map((e) => {
                     const ex = byId(e.exerciseId);
-                    return ex ? <MuscleIcon key={e.exerciseId} primary={ex.primary} secondary={ex.secondary} className="h-8 w-6" title={ex.name} /> : null;
+                    return ex ? <ExerciseIcon key={e.exerciseId} exercise={ex} className="h-8 w-6" /> : null;
                   })}
                 </div>
               </div>

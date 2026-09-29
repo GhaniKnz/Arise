@@ -1,21 +1,22 @@
 "use client";
 
-import { Flame, History, Info, Plus, Trash2, TrendingUp } from "lucide-react";
+import { Flame, History, Info, NotebookPen, Pencil, Plus, Trash2, TrendingUp } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { EquipmentIcon } from "@/components/icons/EquipmentIcon";
-import { MuscleIcon } from "@/components/icons/MuscleIcon";
+import { ExerciseIcon } from "@/components/icons/ExerciseIcon";
 import { Button } from "@/components/ui/Button";
 import { Chip, Toggle } from "@/components/ui/Fields";
 import { Sheet } from "@/components/ui/Sheet";
 import { EQUIPMENT_LABEL, MUSCLE_LABEL } from "@/lib/data/exercises";
 import { addSet, deleteSet, setDone, updateSet } from "@/lib/db/repos/workout";
 import type { Exercise, Session, WorkoutSet } from "@/lib/db/types";
-import { applySet, detectPRs, progressionHint, type PRKind } from "@/lib/domain/strength";
+import { applySet, detectPRs, e1rm, gainVsPrevious, progressionHint, type PRKind, type SetGain } from "@/lib/domain/strength";
 import type { ExerciseHistory } from "@/lib/hooks/useSessionHistory";
 import { toast } from "@/lib/system/store";
 import { formatShort } from "@/lib/utils/date";
 import { fmtDec } from "@/lib/utils/format";
+import { ExerciseEditorSheet } from "./ExerciseEditorSheet";
 import { SetRow } from "./SetRow";
 
 interface Props {
@@ -24,12 +25,13 @@ interface Props {
   sets: WorkoutSet[];
   history?: ExerciseHistory;
   repRange: [number, number];
-  onSetCompleted?: (info: { set: WorkoutSet; prs: PRKind[]; values: { weightKg: number; reps: number } }) => void;
+  onSetCompleted?: (info: { set: WorkoutSet; prs: PRKind[]; gain: SetGain | null; beat?: string; values: { weightKg: number; reps: number } }) => void;
   compactHeader?: boolean;
 }
 
 export function ExerciseBlock({ session, exercise, sets, history, repRange, onSetCompleted, compactHeader }: Props) {
   const [menuSet, setMenuSet] = useState<WorkoutSet | null>(null);
+  const [editing, setEditing] = useState(false);
   const weightedOf = (w: number) => exercise.weighted || w > 0;
   const working = sets.filter((s) => !s.warmup);
   const hint = useMemo(() => progressionHint(history?.last.map((s) => ({ weightKg: s.weightKg, reps: s.reps })) ?? [], repRange[0], repRange[1], exercise.primary === "quads" || exercise.primary === "hamstrings" || exercise.primary === "glutes" ? 5 : 2.5), [history, repRange, exercise.primary]);
@@ -57,11 +59,16 @@ export function ExerciseBlock({ session, exercise, sets, history, repRange, onSe
     if (!s.done) {
       let bests = history?.bests;
       let prs: PRKind[] = [];
+      let beat: string | undefined;
       if (bests && bests.count > 0) {
         for (const x of sets.filter((y) => y.done && y.id !== s.id)) bests = applySet(bests, x);
         prs = detectPRs({ ...s, ...values, done: true }, bests, weightedOf(values.weightKg));
+        if (prs.includes("weight")) beat = `Ancien record : ${fmtDec(bests.weight)} kg`;
+        else if (prs.includes("e1rm")) beat = `1RM estimé : ${fmtDec(bests.e1rm)} → ${fmtDec(e1rm(values.weightKg, values.reps))} kg`;
       }
-      onSetCompleted?.({ set: s, prs, values });
+      const idx = working.indexOf(s);
+      const prev = s.warmup ? undefined : (history?.last[idx] ?? history?.last.at(-1));
+      onSetCompleted?.({ set: s, prs, beat, gain: s.warmup ? null : gainVsPrevious(prev, values, weightedOf(values.weightKg)), values });
     }
   };
 
@@ -70,9 +77,14 @@ export function ExerciseBlock({ session, exercise, sets, history, repRange, onSe
   return (
     <div>
       <div className="flex items-start gap-3">
-        <span className="flex h-16 w-12 shrink-0 items-center justify-center rounded-xl border border-line bg-white/[0.03]">
-          <MuscleIcon primary={exercise.primary} secondary={exercise.secondary} className="h-14 w-10" />
-        </span>
+        <button
+          type="button"
+          onClick={() => setEditing(true)}
+          className="icon-tile flex h-16 w-12 shrink-0 items-center justify-center rounded-xl border border-line bg-white/[0.03] transition hover:border-arise/50"
+          aria-label={`Modifier l'exercice ${exercise.name}`}
+        >
+          <ExerciseIcon exercise={exercise} className="h-14 w-10" />
+        </button>
         <div className="min-w-0 flex-1">
           <h2 className={compactHeader ? "font-display text-lg font-bold text-ink" : "font-display text-2xl leading-tight font-bold text-ink"}>{exercise.name}</h2>
           <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-xs text-ink-3">
@@ -85,10 +97,18 @@ export function ExerciseBlock({ session, exercise, sets, history, repRange, onSe
             </span>
           </p>
         </div>
-        <Link href={`/workout/exercises/${exercise.id}`} className="flex size-9 shrink-0 items-center justify-center rounded-xl text-ink-3 hover:bg-white/5 hover:text-ink" aria-label={`Fiche de ${exercise.name}`}>
+        <button type="button" onClick={() => setEditing(true)} className="flex size-9 shrink-0 items-center justify-center rounded-xl text-ink-3 hover:bg-white/5 hover:text-ink" aria-label={`Modifier l'exercice ${exercise.name}`}>
+          <Pencil className="size-4.5" />
+        </button>
+        <Link href={`/workout/exercises/${exercise.id}`} className="-ml-2 flex size-9 shrink-0 items-center justify-center rounded-xl text-ink-3 hover:bg-white/5 hover:text-ink" aria-label={`Fiche de ${exercise.name}`}>
           <Info className="size-5" />
         </Link>
       </div>
+      {exercise.notes && (
+        <p className="mt-2 flex items-start gap-2 rounded-xl border border-violet/25 bg-violet/[0.06] px-3 py-2 text-[13px] text-ink-2">
+          <NotebookPen className="mt-0.5 size-4 shrink-0 text-violet-2" /> {exercise.notes}
+        </p>
+      )}
 
       <div className="mt-3 space-y-1.5 rounded-xl border border-line bg-white/[0.02] px-3 py-2 text-[13px]">
         <p className="flex items-center gap-2 text-ink-2">
@@ -120,7 +140,7 @@ export function ExerciseBlock({ session, exercise, sets, history, repRange, onSe
         <div className="space-y-1">
           {sets.map((s) => {
             const workIdx = working.indexOf(s);
-            const prev = s.warmup ? undefined : history?.last[workIdx] ?? history?.last.at(-1);
+            const prev = s.warmup ? undefined : (history?.last[workIdx] ?? history?.last.at(-1));
             return (
               <SetRow
                 key={s.id}
@@ -132,6 +152,7 @@ export function ExerciseBlock({ session, exercise, sets, history, repRange, onSe
                 onToggleDone={(v) => toggle(s, v)}
                 onMenu={() => setMenuSet(s)}
                 isPR={prIds.has(s.id)}
+                gain={s.done && prev ? gainVsPrevious(prev, s, weightedOf(s.weightKg)) : null}
               />
             );
           })}
@@ -148,6 +169,8 @@ export function ExerciseBlock({ session, exercise, sets, history, repRange, onSe
           </span>
         </div>
       </div>
+
+      <ExerciseEditorSheet open={editing} onClose={() => setEditing(false)} exercise={exercise} />
 
       <Sheet open={!!menuSet} onClose={() => setMenuSet(null)} title={menuSet?.warmup ? "Série d'échauffement" : `Série ${menuSet ? working.indexOf(menuSet) + 1 : ""}`} size="sm">
         {menuSet && (

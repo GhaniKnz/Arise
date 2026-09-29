@@ -213,6 +213,13 @@ export interface Exercise {
   instructions: string[];
   tips?: string[];
   restSec: number;
+  /**
+   * Pictogram: undefined = muscle silhouette (auto view), `view:front|back|both`,
+   * `eq:<equipment>` or `g:<glyph key>`.
+   */
+  icon?: string;
+  /** Personal notes (setup, machine settings…). */
+  notes?: string;
 }
 
 export type CustomExercise = Exercise & BaseRow;
@@ -232,6 +239,10 @@ export interface Routine extends BaseRow {
   type: RoutineType;
   exercises: RoutineExercise[];
   notes?: string;
+  /** Accent color (hex); defaults to the type color. */
+  color?: string;
+  /** `m:<muscle>` silhouette or `g:<glyph key>`; defaults per type. */
+  icon?: string;
 }
 
 export interface Session extends BaseRow {
@@ -243,6 +254,9 @@ export interface Session extends BaseRow {
   endedAt?: string;
   status: "active" | "done";
   exerciseIds: string[];
+  /** Copied from the routine when started, so history keeps its look. */
+  color?: string;
+  icon?: string;
   notes?: string;
   /** Perceived effort 1–10 for the whole session. */
   rpe?: number;

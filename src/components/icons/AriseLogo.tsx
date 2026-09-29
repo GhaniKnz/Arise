@@ -34,8 +34,8 @@ export function AriseMark({ className }: { className?: string }) {
 export function AriseWordmark({ className }: { className?: string }) {
   return (
     <span className={cn("flex items-center gap-2", className)}>
-      <AriseMark className="size-8" />
-      <span className="text-glow font-display text-lg font-bold tracking-[0.32em] text-ink">ARISE</span>
+      <AriseMark className="aura size-8" />
+      <span className="text-shimmer font-display text-lg font-bold tracking-[0.32em]">ARISE</span>
     </span>
   );
 }

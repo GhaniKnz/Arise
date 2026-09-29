@@ -1,7 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { Crown, Sparkles, Swords, Trophy, X, Zap } from "lucide-react";
+import { Crown, Skull, Sparkles, Swords, Trophy, X, Zap } from "lucide-react";
 import { useEffect } from "react";
 import { createPortal } from "react-dom";
 import { RANK_META, STAT_META, type StatKey } from "@/lib/domain/game";
@@ -132,7 +132,46 @@ function OverlayContent({ overlay }: { overlay: Overlay }) {
                 </span>
               ))}
             </div>
+            {overlay.beat && (
+              <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.7 }} className="mt-3 text-sm text-ink-3">
+                {overlay.beat}
+              </motion.p>
+            )}
+            {overlay.xp ? (
+              <motion.p initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.9 }} className="mt-3 flex items-center justify-center gap-1.5 font-display text-lg font-semibold text-warn">
+                <Zap className="size-5" /> +{overlay.xp} XP · STR
+              </motion.p>
+            ) : null}
           </motion.div>
+        </>
+      );
+    case "boss":
+      return (
+        <>
+          <EnergyBurst color="#fb4f6e" count={36} />
+          <p className="label text-boss">[ Donjon ]</p>
+          <motion.div initial={{ scale: 1.6, opacity: 0, rotate: -12 }} animate={{ scale: 1, opacity: 1, rotate: 0 }} transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }} className="mt-4 flex justify-center">
+            <span className="flex size-20 items-center justify-center rounded-2xl border-2 border-boss/70 bg-boss/15 shadow-[0_0_40px_rgb(251_79_110/0.6)]">
+              <Skull className="size-10 text-boss" />
+            </span>
+          </motion.div>
+          <motion.h2
+            initial={{ scale: 0.7, opacity: 0, letterSpacing: "0.5em" }}
+            animate={{ scale: 1, opacity: 1, letterSpacing: "0.12em" }}
+            transition={{ duration: 0.7, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
+            className="mt-4 font-display text-4xl font-bold text-white sm:text-5xl"
+            style={{ textShadow: "0 0 22px rgb(251 79 110 / 0.7)" }}
+          >
+            BOSS VAINCU
+          </motion.h2>
+          <motion.p initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }} className="mt-3 text-lg text-ink">
+            {overlay.name}
+          </motion.p>
+          <p className="mt-1 text-sm text-ink-3">Palier des {fmtDec(overlay.atKg)} kg franchi (moyenne 7 jours)</p>
+          <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8 }} className="mt-4 flex items-center justify-center gap-2 font-display text-2xl font-semibold text-arise">
+            <Zap className="size-6" /> +{overlay.xp} XP
+          </motion.p>
+          {overlay.next && <p className="mt-2 text-xs text-ink-3">Prochain adversaire : {overlay.next}</p>}
         </>
       );
   }
@@ -143,7 +182,7 @@ function OverlayHost() {
   const current = overlays[0];
   useEffect(() => {
     if (!current) return;
-    const t = window.setTimeout(dismissOverlay, current.kind === "levelup" ? 5200 : 4200);
+    const t = window.setTimeout(dismissOverlay, current.kind === "levelup" || current.kind === "boss" ? 5200 : 4200);
     return () => window.clearTimeout(t);
   }, [current]);
 
@@ -154,7 +193,7 @@ function OverlayHost() {
           key={JSON.stringify(current)}
           role="alertdialog"
           aria-live="assertive"
-          aria-label={current.kind === "levelup" ? `Niveau ${current.level} atteint` : current.kind === "pr" ? "Nouveau record personnel" : "Quêtes du jour accomplies"}
+          aria-label={current.kind === "levelup" ? `Niveau ${current.level} atteint` : current.kind === "pr" ? "Nouveau record personnel" : current.kind === "boss" ? `Boss vaincu : ${current.name}` : "Quêtes du jour accomplies"}
           className="fixed inset-0 z-[120] flex items-center justify-center overflow-hidden px-6 text-center"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -169,7 +208,9 @@ function OverlayHost() {
                   ? "radial-gradient(circle at 50% 50%, rgb(139 92 246 / 0.35), transparent 55%)"
                   : current.kind === "pr"
                     ? "radial-gradient(circle at 50% 50%, rgb(245 185 74 / 0.22), transparent 55%)"
-                    : "radial-gradient(circle at 50% 50%, rgb(77 163 255 / 0.3), transparent 55%)",
+                    : current.kind === "boss"
+                      ? "radial-gradient(circle at 50% 50%, rgb(251 79 110 / 0.28), transparent 55%)"
+                      : "radial-gradient(circle at 50% 50%, rgb(77 163 255 / 0.3), transparent 55%)",
             }}
           />
           <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: -10, opacity: 0 }} className="relative flex flex-col items-center">

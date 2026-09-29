@@ -1,22 +1,25 @@
 "use client";
 
 import { AnimatePresence, motion } from "motion/react";
-import { ArrowDown, ArrowUp, ChevronLeft, ChevronRight, ListOrdered, Minimize2, Plus, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, ChevronLeft, ChevronRight, ListOrdered, Minimize2, Pencil, Plus, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { useGame } from "@/components/providers/GameProvider";
-import { MuscleIcon } from "@/components/icons/MuscleIcon";
+import { ExerciseIcon, RoutineIcon } from "@/components/icons/ExerciseIcon";
 import { ExerciseBlock } from "@/components/workout/ExerciseBlock";
 import { ExercisePickerSheet } from "@/components/workout/ExercisePickerSheet";
 import { FinishSheet } from "@/components/workout/FinishSheet";
 import { RestTimerBar } from "@/components/workout/RestTimerBar";
+import { gainLabel } from "@/components/workout/SetRow";
 import { SessionStarter } from "@/components/workout/SessionStarter";
 import { Button, IconButton } from "@/components/ui/Button";
+import { Field, TextInput, Toggle } from "@/components/ui/Fields";
 import { EmptyState, PageSkeleton } from "@/components/ui/Feedback";
 import { Panel } from "@/components/ui/Panel";
 import { Sheet } from "@/components/ui/Sheet";
 import { useActiveSession, useExerciseLibrary, useRoutine, useSessionSets } from "@/lib/db/hooks";
-import { addExerciseToSession, deleteSession, finishSession, removeExerciseFromSession, reorderSessionExercises } from "@/lib/db/repos/workout";
+import { routineColor, routineIcon } from "@/lib/data/routines";
+import { addExerciseToSession, deleteSession, finishSession, removeExerciseFromSession, renameSession, reorderSessionExercises } from "@/lib/db/repos/workout";
 import { useRestTimer } from "@/lib/hooks/useRestTimer";
 import { useSessionHistory } from "@/lib/hooks/useSessionHistory";
 import { cue } from "@/lib/system/feedback";
@@ -26,7 +29,7 @@ import { fmtClock } from "@/lib/utils/format";
 
 export default function SessionPage() {
   const router = useRouter();
-  const { profile } = useGame();
+  const { profile, prs, today } = useGame();
   const session = useActiveSession();
   const sets = useSessionSets(session?.id);
   const routine = useRoutine(session?.routineId);
@@ -39,6 +42,12 @@ export default function SessionPage() {
   const [overview, setOverview] = useState(false);
   const [finishing, setFinishing] = useState(false);
   const [sessionPRs, setSessionPRs] = useState(0);
+  // PR XP is capped at 3 per day (see game.ts); only promise XP that will count.
+  // Finished sessions only: this session's records are tracked in sessionPRs.
+  const prsToday = prs.filter((p) => p.date === today).length;
+  const [renaming, setRenaming] = useState(false);
+  const [newName, setNewName] = useState("");
+  const [renameRoutine, setRenameRoutine] = useState(true);
 
   useEffect(() => {
     const id = window.setInterval(() => setNow(Date.now()), 1000);
@@ -102,10 +111,23 @@ export default function SessionPage() {
         <IconButton label="Réduire (la séance continue)" onClick={() => router.push("/")}>
           <Minimize2 />
         </IconButton>
-        <div className="min-w-0 flex-1 text-center">
-          <p className="truncate font-display text-sm font-semibold tracking-wide text-ink">{session.name}</p>
-          <p className="font-display text-lg leading-none font-bold text-good tabular">{fmtClock(elapsed)}</p>
-        </div>
+        <button
+          type="button"
+          className="group min-w-0 flex-1 text-center"
+          onClick={() => {
+            setNewName(session.name);
+            setRenameRoutine(!!routine);
+            setRenaming(true);
+          }}
+          aria-label={`Renommer la séance ${session.name}`}
+        >
+          <span className="flex items-center justify-center gap-1.5">
+            <RoutineIcon icon={routineIcon(session)} color={routineColor(session)} className="size-4" />
+            <span className="truncate font-display text-sm font-semibold tracking-wide text-ink">{session.name}</span>
+            <Pencil className="size-3 shrink-0 text-ink-3 transition group-hover:text-arise" />
+          </span>
+          <span className="block font-display text-lg leading-none font-bold text-good tabular">{fmtClock(elapsed)}</span>
+        </button>
         <IconButton label="Vue d'ensemble des exercices" onClick={() => setOverview(true)}>
           <ListOrdered />
         </IconButton>
@@ -131,7 +153,7 @@ export default function SessionPage() {
                   i === current ? "border-arise/60 bg-arise/15 text-ink" : complete ? "border-good/40 bg-good/10 text-ink-2" : "border-line bg-deep/60 text-ink-3",
                 )}
               >
-                {ex && <MuscleIcon primary={ex.primary} className="h-5 w-4" />}
+                {ex && <ExerciseIcon exercise={ex} className="h-5 w-4" />}
                 <span className="max-w-28 truncate">{ex?.name ?? "?"}</span>
                 <span className="tabular opacity-70">
                   {d}/{t}
@@ -152,14 +174,17 @@ export default function SessionPage() {
                 sets={exSets}
                 history={history?.get(exercise.id)}
                 repRange={repRange}
-                onSetCompleted={({ prs, values }) => {
+                onSetCompleted={({ prs, gain, beat, values }) => {
                   cue("set");
                   const remainingSets = sets.filter((s) => !s.done && !s.warmup).length - 1;
                   if (remainingSets > 0) timer.start(restSec);
                   if (prs.length) {
                     setSessionPRs((n) => n + 1);
                     cue("pr");
-                    showOverlay({ kind: "pr", exercise: exercise.name, weightKg: values.weightKg, reps: values.reps, kinds: prs, weighted: exercise.weighted || values.weightKg > 0 });
+                    showOverlay({ kind: "pr", exercise: exercise.name, weightKg: values.weightKg, reps: values.reps, kinds: prs, weighted: exercise.weighted || values.weightKg > 0, beat, xp: prsToday + sessionPRs < 3 ? 40 : undefined });
+                  } else if (gain) {
+                    cue("quest");
+                    toast({ tone: "quest", title: `Progression : ${gainLabel(gain)}`, message: `${exercise.name} · mieux que la dernière séance` });
                   }
                 }}
               />
@@ -212,7 +237,7 @@ export default function SessionPage() {
             };
             return (
               <li key={id} className="flex items-center gap-2 rounded-xl border border-line bg-white/[0.02] p-2">
-                {ex && <MuscleIcon primary={ex.primary} secondary={ex.secondary} className="h-10 w-7" />}
+                {ex && <ExerciseIcon exercise={ex} className="h-10 w-7" />}
                 <button type="button" className="min-w-0 flex-1 text-left" onClick={() => { setIndex(i); setOverview(false); }}>
                   <span className="block truncate text-sm font-medium text-ink">{ex?.name}</span>
                   <span className="text-[11px] text-ink-3">
@@ -232,6 +257,33 @@ export default function SessionPage() {
             );
           })}
         </ul>
+      </Sheet>
+
+      <Sheet
+        open={renaming}
+        onClose={() => setRenaming(false)}
+        title="Renommer la séance"
+        size="sm"
+        footer={
+          <Button
+            block
+            disabled={!newName.trim()}
+            onClick={async () => {
+              await renameSession(session, newName.trim(), renameRoutine && !!routine);
+              setRenaming(false);
+              toast({ tone: "success", title: "Séance renommée", message: newName.trim() });
+            }}
+          >
+            Enregistrer
+          </Button>
+        }
+      >
+        <div className="space-y-4">
+          <Field label="Nom">
+            <TextInput value={newName} onChange={(e) => setNewName(e.target.value)} autoFocus placeholder="Ex. Push lourd" />
+          </Field>
+          {routine && <Toggle checked={renameRoutine} onChange={setRenameRoutine} label={`Renommer aussi le programme « ${routine.name} »`} description="Les prochaines séances porteront ce nom" />}
+        </div>
       </Sheet>
 
       <FinishSheet open={finishing} onClose={() => setFinishing(false)} sets={sets} elapsedSec={elapsed} prCount={sessionPRs} onFinish={onFinish} onDiscard={onDiscard} />

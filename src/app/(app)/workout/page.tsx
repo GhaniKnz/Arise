@@ -1,19 +1,21 @@
 "use client";
 
-import { BookOpen, ChevronRight, Dumbbell, HeartPulse, Pencil, Play, Plus, Trophy } from "lucide-react";
+import { BookOpen, CalendarDays, CalendarRange, ChevronRight, Dumbbell, HeartPulse, Layers, Pencil, Play, Plus, Trophy, Weight } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useGame } from "@/components/providers/GameProvider";
+import { ExerciseIcon, RoutineIcon } from "@/components/icons/ExerciseIcon";
 import { MuscleIcon } from "@/components/icons/MuscleIcon";
 import { CARDIO_LABEL } from "@/components/quick/CardioSheet";
+import { SplitSheet } from "@/components/workout/SplitSheet";
 import { WeekStrip } from "@/components/workout/WeekStrip";
 import { Button, LinkButton } from "@/components/ui/Button";
 import { Select } from "@/components/ui/Fields";
 import { EmptyState, PageSkeleton } from "@/components/ui/Feedback";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Panel, PanelHeader, StatTile } from "@/components/ui/Panel";
-import { ROUTINE_TYPE_META } from "@/lib/data/routines";
+import { routineColor, routineIcon } from "@/lib/data/routines";
 import { MUSCLE_LABEL } from "@/lib/data/exercises";
 import { useActiveSession, useExerciseLibrary, useRoutines } from "@/lib/db/hooks";
 import { updateProfile } from "@/lib/db/repos/profile";
@@ -22,7 +24,7 @@ import type { Routine } from "@/lib/db/types";
 import { sessionMinutes } from "@/lib/domain/daily";
 import { setsPerMuscle, TRACKED_MUSCLES, WEEKLY_SET_TARGET } from "@/lib/domain/volume";
 import { openSheet } from "@/lib/system/ui";
-import { addDays, formatDay, monthStart, weekStart, WEEKDAYS_LONG } from "@/lib/utils/date";
+import { addDays, formatDay, monthStart, weekStart, WEEKDAYS_LONG, WEEKDAYS_SHORT } from "@/lib/utils/date";
 import { cn } from "@/lib/utils/cn";
 import { fmtDuration, fmtInt } from "@/lib/utils/format";
 
@@ -32,6 +34,7 @@ export default function WorkoutPage() {
   const active = useActiveSession();
   const { byId } = useExerciseLibrary();
   const router = useRouter();
+  const [splitOpen, setSplitOpen] = useState(false);
 
   const week = weekStart(today);
   const month = monthStart(today);
@@ -71,14 +74,14 @@ export default function WorkoutPage() {
       />
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <Panel className="lg:col-span-2">
+        <Panel className="lg:col-span-2 lg:self-start">
           <PanelHeader title="Cette semaine" icon={<Dumbbell />} />
           <WeekStrip />
           <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
-            <StatTile label="Séances ce mois" value={monthSessions} />
-            <StatTile label="Séries (semaine)" value={weekSets.filter((s) => s.done && !s.warmup).length} />
-            <StatTile label="Volume (semaine)" value={fmtInt(weekVolume)} unit="kg" />
-            <StatTile label="Records ce mois" value={monthPRs} accent="var(--color-warn)" />
+            <StatTile label="Séances ce mois" value={monthSessions} icon={<CalendarDays />} />
+            <StatTile label="Séries (semaine)" value={weekSets.filter((s) => s.done && !s.warmup).length} icon={<Layers />} accent="var(--color-violet-2)" />
+            <StatTile label="Volume (semaine)" value={fmtInt(weekVolume)} unit="kg" icon={<Weight />} accent="var(--color-cyan)" />
+            <StatTile label="Records ce mois" value={monthPRs} accent="var(--color-warn)" icon={<Trophy />} />
           </div>
         </Panel>
 
@@ -109,38 +112,71 @@ export default function WorkoutPage() {
       </div>
 
       <section className="mt-6">
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="label text-ink-2">Mes programmes</h2>
-          <LinkButton href="/workout/routines/new" size="sm" variant="secondary">
-            <Plus /> Nouveau
-          </LinkButton>
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+          <h2 className="label flex items-center gap-2 text-ink-2">
+            <Dumbbell className="size-4 text-arise" /> Mes séances
+          </h2>
+          <div className="flex gap-2">
+            <Button size="sm" variant="ghost" onClick={() => setSplitOpen(true)}>
+              <CalendarRange /> Split
+            </Button>
+            <LinkButton href="/workout/routines/new" size="sm" variant="secondary">
+              <Plus /> Nouvelle
+            </LinkButton>
+          </div>
         </div>
         {routines.length ? (
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {routines.map((r) => {
-              const meta = ROUTINE_TYPE_META[r.type];
+              const color = routineColor(r);
+              const days = profile.schedule.map((id, i) => (id === r.id ? WEEKDAYS_SHORT[i] : null)).filter(Boolean);
               return (
-                <Panel key={r.id} className="flex flex-col">
-                  <div className="flex items-start gap-2">
-                    <span className="mt-1.5 size-2.5 shrink-0 rounded-full" style={{ background: meta.color, boxShadow: `0 0 8px ${meta.color}` }} />
-                    <div className="min-w-0 flex-1">
-                      <p className="font-display text-lg font-bold text-ink">{r.name}</p>
-                      <p className="text-xs text-ink-3">
-                        {meta.label} · {r.exercises.length} exercices · {r.exercises.reduce((a, e) => a + e.sets, 0)} séries
-                      </p>
-                    </div>
-                    <Link href={`/workout/routines/${r.id}`} className="flex size-8 items-center justify-center rounded-lg text-ink-3 hover:bg-white/5 hover:text-ink" aria-label={`Modifier ${r.name}`}>
-                      <Pencil className="size-4" />
+                <Panel key={r.id} className="card-hover group flex flex-col overflow-hidden" style={{ borderColor: `color-mix(in srgb, ${color} 30%, transparent)` }}>
+                  <div className="pointer-events-none absolute -top-14 -right-12 size-36 rounded-full opacity-25 blur-2xl transition-opacity group-hover:opacity-45" style={{ background: color }} aria-hidden />
+                  <div className="relative flex items-center gap-3">
+                    <Link
+                      href={`/workout/routines/${r.id}`}
+                      className="flex size-12 shrink-0 items-center justify-center rounded-2xl border bg-void/50"
+                      style={{ borderColor: `color-mix(in srgb, ${color} 60%, transparent)`, boxShadow: `0 0 18px -6px ${color}` }}
+                      aria-label={`Modifier ${r.name}`}
+                    >
+                      <RoutineIcon icon={routineIcon(r)} color={color} className="size-8" />
+                    </Link>
+                    <Link href={`/workout/routines/${r.id}`} className="min-w-0 flex-1">
+                      <span className="flex items-center gap-1.5">
+                        <span className="truncate font-display text-lg font-bold text-ink">{r.name}</span>
+                        <Pencil className="size-3.5 shrink-0 text-ink-3 transition group-hover:text-arise" />
+                      </span>
+                      <span className="flex flex-wrap items-center gap-x-2.5 text-[11px] text-ink-3">
+                        <span className="flex items-center gap-1">
+                          <Dumbbell className="size-3" /> {r.exercises.length}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Layers className="size-3" /> {r.exercises.reduce((a, e) => a + e.sets, 0)} séries
+                        </span>
+                        {days.length > 0 && (
+                          <span className="flex items-center gap-1" style={{ color }}>
+                            <CalendarDays className="size-3" /> {days.join(" · ")}
+                          </span>
+                        )}
+                      </span>
                     </Link>
                   </div>
-                  <p className="mt-2 line-clamp-2 text-xs text-ink-2">{r.exercises.map((e) => byId(e.exerciseId)?.name).filter(Boolean).join(" · ")}</p>
-                  <div className="mt-auto flex items-end justify-between gap-2 pt-3">
-                    <div className="flex gap-0.5">
-                      {r.exercises.slice(0, 6).map((e) => {
-                        const ex = byId(e.exerciseId);
-                        return ex ? <MuscleIcon key={e.exerciseId} primary={ex.primary} secondary={ex.secondary} className="h-8 w-6" /> : null;
-                      })}
-                    </div>
+                  <div className="relative mt-3 flex gap-1 overflow-hidden" aria-label={r.exercises.map((e) => byId(e.exerciseId)?.name).filter(Boolean).join(", ")}>
+                    {r.exercises.slice(0, 7).map((e, i) => {
+                      const ex = byId(e.exerciseId);
+                      return ex ? (
+                        <span key={`${e.exerciseId}-${i}`} className="flex h-10 w-8 shrink-0 items-center justify-center rounded-lg bg-white/[0.03]" title={ex.name}>
+                          <ExerciseIcon exercise={ex} className="h-9 w-6" />
+                        </span>
+                      ) : null;
+                    })}
+                    {r.exercises.length > 7 && <span className="self-center pl-1 text-[11px] text-ink-3">+{r.exercises.length - 7}</span>}
+                  </div>
+                  <div className="relative mt-auto flex items-center justify-end gap-2 pt-3">
+                    <LinkButton href={`/workout/routines/${r.id}`} size="sm" variant="ghost">
+                      <Pencil /> Modifier
+                    </LinkButton>
                     <Button size="sm" onClick={() => start(r)} disabled={!!active}>
                       <Play /> Go
                     </Button>
@@ -150,36 +186,65 @@ export default function WorkoutPage() {
             })}
           </div>
         ) : (
-          <EmptyState icon={<Dumbbell />} title="Aucun programme" description="Crée ton premier programme (Push, Pull, Legs…)." action={<LinkButton href="/workout/routines/new" size="sm">Créer un programme</LinkButton>} />
+          <EmptyState
+            icon={<Dumbbell />}
+            title="Aucune séance"
+            description="Crée ta première séance ou choisis un split (Push/Pull, Upper/Lower…)."
+            action={
+              <div className="flex gap-2">
+                <Button size="sm" variant="secondary" onClick={() => setSplitOpen(true)}>
+                  <CalendarRange /> Choisir un split
+                </Button>
+                <LinkButton href="/workout/routines/new" size="sm">
+                  Créer
+                </LinkButton>
+              </div>
+            }
+          />
         )}
       </section>
 
       <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
         <Panel>
-          <PanelHeader title="Planning hebdomadaire" subtitle="Définit la quête « Séance » du jour" />
+          <PanelHeader
+            title="Planning hebdomadaire"
+            icon={<CalendarDays />}
+            subtitle="Définit la quête « Séance » du jour"
+            action={
+              <Button size="sm" variant="ghost" onClick={() => setSplitOpen(true)}>
+                <CalendarRange /> Split
+              </Button>
+            }
+          />
           <ul className="space-y-2">
-            {WEEKDAYS_LONG.map((d, i) => (
-              <li key={d} className="flex items-center gap-3">
-                <span className="w-20 text-sm text-ink-2">{d}</span>
-                <Select
-                  aria-label={`Programme du ${d}`}
-                  value={profile.schedule[i] ?? ""}
-                  onChange={(e) => {
-                    const next = [...profile.schedule];
-                    next[i] = e.target.value || null;
-                    void updateProfile({ schedule: next, sessionsPerWeek: next.filter(Boolean).length });
-                  }}
-                  className="h-10"
-                >
-                  <option value="">Repos</option>
-                  {routines.map((r) => (
-                    <option key={r.id} value={r.id}>
-                      {r.name}
-                    </option>
-                  ))}
-                </Select>
-              </li>
-            ))}
+            {WEEKDAYS_LONG.map((d, i) => {
+              const planned = routines.find((r) => r.id === profile.schedule[i]);
+              return (
+                <li key={d} className="flex items-center gap-3">
+                  <span className="flex size-9 shrink-0 items-center justify-center rounded-xl border border-line bg-white/[0.02]">
+                    {planned ? <RoutineIcon icon={routineIcon(planned)} color={routineColor(planned)} className="size-6" /> : <span className="text-[10px] text-ink-3">zZ</span>}
+                  </span>
+                  <span className="w-20 shrink-0 text-sm text-ink-2">{d}</span>
+                  <Select
+                    aria-label={`Programme du ${d}`}
+                    value={profile.schedule[i] ?? ""}
+                    onChange={(e) => {
+                      const next = [...profile.schedule];
+                      next[i] = e.target.value || null;
+                      void updateProfile({ schedule: next, sessionsPerWeek: next.filter(Boolean).length });
+                    }}
+                    className="h-10 min-w-0 flex-1"
+                  >
+                    <option value="">Repos</option>
+                    {routines.map((r) => (
+                      <option key={r.id} value={r.id}>
+                        {r.name}
+                      </option>
+                    ))}
+                  </Select>
+                </li>
+              );
+            })}
           </ul>
         </Panel>
 
@@ -201,7 +266,9 @@ export default function WorkoutPage() {
                 return (
                   <li key={s.id}>
                     <Link href={`/workout/history/${s.id}`} className="flex items-center gap-3 py-2.5 hover:bg-white/[0.02]">
-                      <span className="size-2 rounded-full" style={{ background: ROUTINE_TYPE_META[s.type].color }} aria-hidden />
+                      <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-white/[0.03]" aria-hidden>
+                        <RoutineIcon icon={routineIcon(s)} color={routineColor(s)} className="size-5" />
+                      </span>
                       <span className="min-w-0 flex-1">
                         <span className="block truncate text-sm font-medium text-ink">{s.name}</span>
                         <span className="block text-[11px] text-ink-3 first-letter:uppercase">
@@ -273,6 +340,7 @@ export default function WorkoutPage() {
           <ChevronRight className="size-5 text-ink-3 transition group-hover:translate-x-1" />
         </Link>
       </div>
+      <SplitSheet open={splitOpen} onClose={() => setSplitOpen(false)} />
     </>
   );
 }

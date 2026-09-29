@@ -8,12 +8,20 @@ Tout fonctionne **sans compte et hors ligne** : les données vivent dans le navi
 
 | Module | Contenu |
 | --- | --- |
-| **Dashboard** | Objectif de poids, anneau calories + barres macros, quêtes du jour, score quotidien, séance prévue, tendance de poids, conseil du jour, série (streak) |
+| **Dashboard** | **Donjon de l'objectif** (barre de progression avec boss de palier), anneau calories + macros, quêtes du jour, score quotidien, séance prévue, tendance de poids, conseil du jour, série (streak) |
 | **Nutrition** | Journal par repas, base de ~180 aliments FR + Open Food Facts, **Nutrition Score contextuel** (selon ton objectif, pas « bon/mauvais »), favoris/récents, repas enregistrés, recettes, **scan code-barres**, **photo de repas → estimation IA modifiable**, copie du repas de la veille |
-| **Workout** | Calendrier de la semaine, programmes (Push/Pull/Legs/Upper…), bibliothèque de ~70 exercices avec muscles ciblés, **mode focus** (séries/reps/charge, perf précédente, minuteur de repos, détection de records), historique, e1RM et progression |
+| **Workout** | Séances **entièrement personnalisables** (nom, icône, couleur, exercices, nombre de séries), splits prêts à l'emploi (Push/Pull 4 j, Upper/Lower, PPL…), planning de la semaine, bibliothèque de ~70 exercices **modifiables** (nom, icône, muscles, équipement, notes) + exercices perso, **mode focus** (perf précédente, minuteur de repos, effets de progression et de record), historique, e1RM |
 | **Progress** | Poids + moyenne 7 jours, tendance, **maintenance adaptative**, projection de sèche, composition corporelle, mensurations, **photos avant/après** (curseur de comparaison) |
 | **Système** | Statut (niveau, rang, stats STR/END/ACT/DISC/REC/NUT, succès), calendrier heatmap de discipline, analytics (corrélations), rapport hebdo (+ analyse IA), **coach ARISE AI**, Knowledge (21 fiches avec sources scientifiques) |
 | **Réglages** | Profil, objectifs (auto ou manuels), quêtes, préférences (sons, vibrations, effets), clé IA, compte/sync, export JSON/CSV, import, suppression |
+
+## Pas réels (Apple Santé)
+
+Une application web ne peut pas lire le podomètre du téléphone en arrière-plan (Apple Santé et Health Connect sont réservés aux apps natives). ARISE propose donc :
+
+- **iPhone** : un Raccourci « ARISE pas » (Rechercher des échantillons de santé → Nombre de pas aujourd'hui → Somme → Copier) puis, dans ARISE, **Pas → « Coller depuis Santé »**. Le guide pas à pas est dans l'app.
+- **Lien** : ouvrir `/?pas=8432` (option `&date=2026-09-29`) pré-remplit la saisie, pratique avec une automatisation.
+- **Saisie manuelle** partout ailleurs.
 
 ## Démarrage rapide
 

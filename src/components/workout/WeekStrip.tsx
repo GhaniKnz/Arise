@@ -3,7 +3,8 @@
 import { Check, Moon } from "lucide-react";
 import { useGame } from "@/components/providers/GameProvider";
 import { useRoutines } from "@/lib/db/hooks";
-import { ROUTINE_TYPE_META } from "@/lib/data/routines";
+import { RoutineIcon } from "@/components/icons/ExerciseIcon";
+import { routineColor, routineIcon } from "@/lib/data/routines";
 import { addDays, weekStart, WEEKDAYS_SHORT } from "@/lib/utils/date";
 import { cn } from "@/lib/utils/cn";
 
@@ -23,8 +24,8 @@ export function WeekStrip({ className }: { className?: string }) {
         const isToday = date === today;
         const past = date < today;
         const label = done[0]?.name ?? planned?.name ?? "Repos";
-        const type = done[0]?.type ?? planned?.type;
-        const color = type ? ROUTINE_TYPE_META[type].color : undefined;
+        const styled = done[0] ?? planned;
+        const color = styled ? routineColor(styled) : undefined;
         return (
           <li
             key={wd}
@@ -36,10 +37,10 @@ export function WeekStrip({ className }: { className?: string }) {
           >
             <span className={cn("text-[10px] font-semibold tracking-wider", isToday ? "text-arise" : "text-ink-3")}>{wd}</span>
             <span
-              className={cn("flex size-7 items-center justify-center rounded-lg text-[10px] font-bold", done.length ? "text-void" : "")}
-              style={done.length ? { background: color ?? "var(--color-good)", boxShadow: `0 0 10px ${color ?? "var(--color-good)"}` } : planned ? { border: `1.5px solid ${color}`, color } : undefined}
+              className={cn("relative flex size-8 items-center justify-center rounded-lg", done.length ? "text-void" : "")}
+              style={done.length ? { background: color ?? "var(--color-good)", boxShadow: `0 0 12px ${color ?? "var(--color-good)"}` } : planned ? { border: `1.5px solid ${color}`, boxShadow: `inset 0 0 10px -4px ${color}` } : undefined}
             >
-              {done.length ? <Check className="size-4" strokeWidth={3} /> : planned ? ROUTINE_TYPE_META[planned.type].short.slice(0, 3) : <Moon className="size-3.5 text-ink-3" />}
+              {done.length ? <Check className="size-4" strokeWidth={3} /> : planned && color ? <RoutineIcon icon={routineIcon(planned)} color={color} className="size-6" /> : <Moon className="size-3.5 text-ink-3" />}
             </span>
             <span className="w-full truncate px-0.5 text-[10px] text-ink-3">{label}</span>
           </li>
