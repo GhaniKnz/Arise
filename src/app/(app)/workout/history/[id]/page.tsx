@@ -11,7 +11,7 @@ import { EmptyState, PageSkeleton } from "@/components/ui/Feedback";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Panel, StatTile } from "@/components/ui/Panel";
 import { useActiveSession, useExerciseLibrary, useRoutine, useSession, useSessionSets } from "@/lib/db/hooks";
-import { addExerciseToSession, deleteSession, startSession } from "@/lib/db/repos/workout";
+import { addExerciseToSession, blockSets, deleteSession, slotAt, startSession } from "@/lib/db/repos/workout";
 import { sessionMinutes } from "@/lib/domain/daily";
 import { useSessionHistory } from "@/lib/hooks/useSessionHistory";
 import { formatDayLong } from "@/lib/utils/date";
@@ -42,7 +42,12 @@ function HistoryDetail() {
     if (routine) await startSession({ routine });
     else {
       const s = await startSession({ name: session.name, type: session.type });
-      for (const exId of session.exerciseIds) await addExerciseToSession(s, exId, working.filter((w) => w.exerciseId === exId).length || 3);
+      let current = s;
+      for (let i = 0; i < session.exerciseIds.length; i++) {
+        const exId = session.exerciseIds[i];
+        await addExerciseToSession(current, exId, blockSets(working, session.exerciseIds, i).length || 3);
+        current = { ...current, exerciseIds: [...current.exerciseIds, exId] };
+      }
     }
     router.push("/session");
   };
@@ -93,16 +98,18 @@ function HistoryDetail() {
       )}
 
       <div className="space-y-4">
-        {session.exerciseIds.map((exId) => {
+        {session.exerciseIds.map((exId, i) => {
           const ex = byId(exId);
           if (!ex) return null;
-          const re = routine?.exercises.find((e) => e.exerciseId === exId);
+          const slot = slotAt(session.exerciseIds, i);
+          const re = routine?.exercises.filter((e) => e.exerciseId === exId)[slot];
           return (
-            <Panel key={exId}>
+            <Panel key={`${exId}-${slot}`}>
               <ExerciseBlock
                 session={session}
                 exercise={ex}
-                sets={sets.filter((s) => s.exerciseId === exId).sort((a, b) => Number(b.warmup) - Number(a.warmup) || a.order - b.order)}
+                slot={slot}
+                sets={blockSets(sets, session.exerciseIds, i).sort((a, b) => Number(b.warmup) - Number(a.warmup) || a.order - b.order)}
                 history={history?.get(exId)}
                 repRange={re ? [re.repsMin, re.repsMax] : [8, 12]}
                 compactHeader

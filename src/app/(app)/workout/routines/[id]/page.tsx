@@ -279,7 +279,7 @@ export default function RoutineEditorPage() {
       <ExercisePickerSheet
         open={picking}
         onClose={() => setPicking(false)}
-        exclude={items.map((i) => i.exerciseId)}
+        added={items.map((i) => i.exerciseId)}
         onPick={(e) => setItems((xs) => [...xs, { exerciseId: e.id, sets: 3, repsMin: e.mechanic === "compound" ? 6 : 10, repsMax: e.mechanic === "compound" ? 10 : 15, restSec: e.restSec }])}
       />
       <ExerciseEditorSheet open={!!editing} onClose={() => setEditing(null)} exercise={editing ?? undefined} />

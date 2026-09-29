@@ -6,8 +6,27 @@ import { EXERCISE_BY_ID } from "@/lib/data/exercises";
 import { nowIso } from "@/lib/utils/id";
 import { todayKey, type DayKey } from "@/lib/utils/date";
 
-/** Sets of the most recent finished session that contains the exercise. */
-export async function lastPerformance(exerciseId: string, excludeSessionId?: string): Promise<WorkoutSet[]> {
+export const slotOf = (s: Pick<WorkoutSet, "slot">) => s.slot ?? 0;
+
+/** Occurrence index of the exercise at `index` among identical ids before it. */
+export function slotAt(exerciseIds: string[], index: number): number {
+  let n = 0;
+  for (let i = 0; i < index; i++) if (exerciseIds[i] === exerciseIds[index]) n++;
+  return n;
+}
+
+/** Sets of the block at `index` (an exercise may appear several times in a session). */
+export function blockSets<T extends Pick<WorkoutSet, "exerciseId" | "slot">>(sets: T[], exerciseIds: string[], index: number): T[] {
+  const id = exerciseIds[index];
+  const slot = slotAt(exerciseIds, index);
+  return sets.filter((s) => s.exerciseId === id && slotOf(s) === slot);
+}
+
+/**
+ * Sets of the most recent finished session that contains the exercise — the
+ * same occurrence (`slot`) when it existed, else the first one.
+ */
+export async function lastPerformance(exerciseId: string, excludeSessionId?: string, slot = 0): Promise<WorkoutSet[]> {
   const sets = await db.sets.where("exerciseId").equals(exerciseId).toArray();
   const done = sets.filter((s) => s.done && !s.warmup && s.sessionId !== excludeSessionId);
   if (!done.length) return [];
@@ -15,22 +34,25 @@ export async function lastPerformance(exerciseId: string, excludeSessionId?: str
   const sessions = (await db.sessions.bulkGet(sessionIds)).filter((s): s is Session => !!s && s.status === "done");
   if (!sessions.length) return [];
   const latest = sessions.sort((a, b) => b.startedAt.localeCompare(a.startedAt))[0];
-  return done.filter((s) => s.sessionId === latest.id).sort((a, b) => a.order - b.order);
+  const inLatest = done.filter((s) => s.sessionId === latest.id);
+  const same = inLatest.filter((s) => slotOf(s) === slot);
+  return (same.length ? same : inLatest.filter((s) => slotOf(s) === 0)).sort((a, b) => a.order - b.order);
 }
 
 export async function getActiveSession(): Promise<Session | undefined> {
   return db.sessions.where("status").equals("active").first();
 }
 
-async function prefilledSets(sessionId: string, date: DayKey, ex: RoutineExercise, startOrder = 0): Promise<WorkoutSet[]> {
-  const prev = await lastPerformance(ex.exerciseId, sessionId);
+async function prefilledSets(sessionId: string, date: DayKey, ex: RoutineExercise, slot = 0): Promise<WorkoutSet[]> {
+  const prev = await lastPerformance(ex.exerciseId, sessionId, slot);
   return Array.from({ length: ex.sets }, (_, i) => {
     const ref = prev[i] ?? prev.at(-1);
     return stamp<WorkoutSet>({
       sessionId,
       exerciseId: ex.exerciseId,
+      ...(slot ? { slot } : {}),
       date,
-      order: startOrder + i,
+      order: i,
       weightKg: ref?.weightKg ?? 0,
       reps: ref?.reps ?? ex.repsMin,
       warmup: false,
@@ -56,7 +78,12 @@ export async function startSession(opts: { routine?: Routine; name?: string; typ
     exerciseIds: routine?.exercises.map((e) => e.exerciseId) ?? [],
   });
   const sets: WorkoutSet[] = [];
-  for (const ex of routine?.exercises ?? []) sets.push(...(await prefilledSets(session.id, date, ex)));
+  const seen = new Map<string, number>();
+  for (const ex of routine?.exercises ?? []) {
+    const slot = seen.get(ex.exerciseId) ?? 0;
+    seen.set(ex.exerciseId, slot + 1);
+    sets.push(...(await prefilledSets(session.id, date, ex, slot)));
+  }
   await db.transaction("rw", db.sessions, db.sets, async () => {
     await db.sessions.add(session);
     if (sets.length) await db.sets.bulkAdd(sets);
@@ -64,19 +91,27 @@ export async function startSession(opts: { routine?: Routine; name?: string; typ
   return session;
 }
 
+/** Appends an exercise block; the same exercise may be added several times. */
 export async function addExerciseToSession(session: Session, exerciseId: string, sets = 3, repsMin = 8) {
-  if (session.exerciseIds.includes(exerciseId)) return;
-  const rows = await prefilledSets(session.id, session.date, { exerciseId, sets, repsMin, repsMax: repsMin + 4, restSec: 90 });
+  const slot = session.exerciseIds.filter((id) => id === exerciseId).length;
+  const rows = await prefilledSets(session.id, session.date, { exerciseId, sets, repsMin, repsMax: repsMin + 4, restSec: 90 }, slot);
   await db.transaction("rw", db.sessions, db.sets, async () => {
     await patch(db.sessions, session.id, { exerciseIds: [...session.exerciseIds, exerciseId] });
     await db.sets.bulkAdd(rows);
   });
 }
 
-export async function removeExerciseFromSession(session: Session, exerciseId: string) {
-  const ids = (await db.sets.where("sessionId").equals(session.id).toArray()).filter((s) => s.exerciseId === exerciseId).map((s) => s.id);
-  await patch(db.sessions, session.id, { exerciseIds: session.exerciseIds.filter((id) => id !== exerciseId) });
-  await remove("sets", ids);
+/** Removes the block at `index` and renumbers later blocks of the same exercise. */
+export async function removeExerciseFromSession(session: Session, index: number) {
+  const exerciseId = session.exerciseIds[index];
+  if (exerciseId === undefined) return;
+  const slot = slotAt(session.exerciseIds, index);
+  const mine = (await db.sets.where("sessionId").equals(session.id).toArray()).filter((s) => s.exerciseId === exerciseId);
+  const drop = mine.filter((s) => slotOf(s) === slot).map((s) => s.id);
+  const shift = mine.filter((s) => slotOf(s) > slot);
+  await patch(db.sessions, session.id, { exerciseIds: session.exerciseIds.filter((_, i) => i !== index) });
+  for (const s of shift) await patch(db.sets, s.id, { slot: slotOf(s) - 1 || undefined });
+  await remove("sets", drop);
 }
 
 export async function reorderSessionExercises(session: Session, exerciseIds: string[]) {
@@ -89,12 +124,13 @@ export async function renameSession(session: Session, name: string, alsoRoutine:
   if (alsoRoutine && session.routineId && (await db.routines.get(session.routineId))) await patch(db.routines, session.routineId, { name });
 }
 
-export async function addSet(session: Session, exerciseId: string, warmup = false) {
-  const existing = (await db.sets.where("sessionId").equals(session.id).toArray()).filter((s) => s.exerciseId === exerciseId);
+export async function addSet(session: Session, exerciseId: string, warmup = false, slot = 0) {
+  const existing = (await db.sets.where("sessionId").equals(session.id).toArray()).filter((s) => s.exerciseId === exerciseId && slotOf(s) === slot);
   const last = existing.sort((a, b) => a.order - b.order).at(-1);
   return insert<WorkoutSet>(db.sets, {
     sessionId: session.id,
     exerciseId,
+    ...(slot ? { slot } : {}),
     date: session.date,
     order: (last?.order ?? -1) + 1,
     weightKg: last?.weightKg ?? 0,

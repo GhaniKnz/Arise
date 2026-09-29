@@ -7,9 +7,15 @@ import { bestsFromSets, type Bests } from "@/lib/domain/strength";
 
 export interface ExerciseHistory {
   bests: Bests;
+  /** Working sets of the last session (first occurrence of the exercise). */
   last: WorkoutSet[];
+  /** Same, per occurrence when the exercise appeared several times. */
+  lastBySlot: Map<number, WorkoutSet[]>;
   lastDate?: string;
 }
+
+/** Last performance for a given occurrence, falling back to the first one. */
+export const lastForSlot = (h: ExerciseHistory | undefined, slot: number) => (h ? (h.lastBySlot.get(slot) ?? h.last) : undefined);
 
 /**
  * For each exercise: all-time bests and last performance, excluding the given
@@ -31,9 +37,13 @@ export function useSessionHistory(sessionId: string | undefined, exerciseIds: st
         const sess = doneMap.get(s.sessionId)!;
         if (!latest || sess.startedAt > latest.startedAt) latest = sess;
       }
+      const lastSets = latest ? mine.filter((s) => s.sessionId === latest!.id && !s.warmup).sort((a, b) => a.order - b.order) : [];
+      const lastBySlot = new Map<number, WorkoutSet[]>();
+      for (const s of lastSets) lastBySlot.set(s.slot ?? 0, [...(lastBySlot.get(s.slot ?? 0) ?? []), s]);
       out.set(id, {
         bests: bestsFromSets(mine),
-        last: latest ? mine.filter((s) => s.sessionId === latest!.id && !s.warmup).sort((a, b) => a.order - b.order) : [],
+        last: lastBySlot.get(0) ?? lastSets,
+        lastBySlot,
         lastDate: latest?.date,
       });
     }

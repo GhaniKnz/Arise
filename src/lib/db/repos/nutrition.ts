@@ -175,3 +175,68 @@ export function entriesToIngredients(entries: FoodEntry[]): Ingredient[] {
     .filter((e) => e.per100 && e.grams > 0)
     .map((e) => ({ foodId: e.foodId, name: e.name, grams: e.grams, per100: e.per100!, nova: e.nova, category: e.category }));
 }
+
+/* ─────────────── Estimation memory ─────────────── */
+
+const norm = (s: string) =>
+  s
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/[^a-z0-9 ]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+/** What the AI should know about: the user's own products and saved meals (most recent first). */
+export async function estimationMemory() {
+  const foods = (await db.foods.toArray()).filter((f) => f.source === "custom" || f.source === "ai").sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+  const meals = (await db.meals.toArray()).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+  return {
+    products: foods.slice(0, 200).map((f) => ({ id: f.id, name: f.name })),
+    meals: meals.slice(0, 80).map((m) => ({ id: m.id, name: m.name })),
+    foodsById: new Map(foods.map((f) => [f.id, f])),
+    foodsByName: new Map(foods.map((f) => [norm(f.name), f])),
+    mealsById: new Map(meals.map((m) => [m.id, m])),
+    mealsByName: new Map(meals.map((m) => [norm(m.name), m])),
+  };
+}
+
+/**
+ * Saves estimated products the user doesn't have yet (source "ai"), reusing
+ * existing ones by id or same name. Returns the food id for each ingredient.
+ */
+export async function rememberProducts(items: Ingredient[]): Promise<(string | undefined)[]> {
+  const existing = (await db.foods.toArray()).filter((f) => f.source === "custom" || f.source === "ai");
+  const byName = new Map(existing.map((f) => [norm(f.name), f.id]));
+  const ids: (string | undefined)[] = [];
+  for (const it of items) {
+    if (it.foodId) {
+      ids.push(it.foodId);
+      continue;
+    }
+    const key = norm(it.name);
+    const found = byName.get(key);
+    if (found) {
+      ids.push(found);
+      continue;
+    }
+    const row = await insert<FoodRow>(db.foods, {
+      name: it.name.trim(),
+      category: it.category ?? "other",
+      nova: it.nova,
+      defaultGrams: Math.max(1, Math.round(it.grams)),
+      ...per100Of(it.per100),
+      source: "ai",
+    });
+    byName.set(key, row.id);
+    ids.push(row.id);
+  }
+  return ids;
+}
+
+/** Saves a dish as a meal unless one with the same name exists. Returns [id, created]. */
+export async function rememberMeal(name: string, items: Ingredient[], slot: MealSlot): Promise<[string, boolean]> {
+  const same = (await db.meals.toArray()).find((m) => norm(m.name) === norm(name));
+  if (same) return [same.id, false];
+  return [await saveMeal({ name: name.trim(), items, defaultSlot: slot }), true];
+}

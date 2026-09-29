@@ -7,8 +7,8 @@ import { buildLedger } from "@/lib/domain/game";
 import { derivePRs } from "@/lib/domain/strength";
 import { adaptiveTdee, weightTrend } from "@/lib/domain/trend";
 import { addDays, todayKey } from "@/lib/utils/date";
-import { logFood, updateEntryGrams, deleteEntries } from "../repos/nutrition";
-import { startSession, setDone, finishSession, addSet } from "../repos/workout";
+import { logFood, updateEntryGrams, deleteEntries, rememberProducts, rememberMeal, estimationMemory } from "../repos/nutrition";
+import { startSession, setDone, finishSession, addSet, addExerciseToSession, removeExerciseFromSession, blockSets } from "../repos/workout";
 import { upsertDailyLog, addWater } from "../repos/body";
 import { FOOD_BY_ID } from "@/lib/data/foods";
 
@@ -73,5 +73,51 @@ describe("demo seed", () => {
     const after = await db.sets.where("sessionId").equals(s.id).toArray();
     expect(after).toHaveLength(1);
     expect((await db.sessions.get(s.id))!.status).toBe("done");
+  });
+
+  it("lets the same exercise appear several times in a session", async () => {
+    const s0 = await startSession({ name: "Test doublons", type: "custom" });
+    await addExerciseToSession(s0, "bench_press", 2);
+    let s = (await db.sessions.get(s0.id))!;
+    await addExerciseToSession(s, "lateral_raise", 2);
+    s = (await db.sessions.get(s0.id))!;
+    await addExerciseToSession(s, "bench_press", 3);
+    s = (await db.sessions.get(s0.id))!;
+    expect(s.exerciseIds).toEqual(["bench_press", "lateral_raise", "bench_press"]);
+
+    let sets = await db.sets.where("sessionId").equals(s.id).toArray();
+    expect(blockSets(sets, s.exerciseIds, 0)).toHaveLength(2);
+    expect(blockSets(sets, s.exerciseIds, 2)).toHaveLength(3);
+    expect(blockSets(sets, s.exerciseIds, 2).every((x) => x.slot === 1)).toBe(true);
+
+    await addSet(s, "bench_press", false, 1);
+    sets = await db.sets.where("sessionId").equals(s.id).toArray();
+    expect(blockSets(sets, s.exerciseIds, 2)).toHaveLength(4);
+
+    // Removing the first bench block: the second one becomes the first.
+    await removeExerciseFromSession(s, 0);
+    s = (await db.sessions.get(s0.id))!;
+    sets = await db.sets.where("sessionId").equals(s.id).toArray();
+    expect(s.exerciseIds).toEqual(["lateral_raise", "bench_press"]);
+    expect(blockSets(sets, s.exerciseIds, 1)).toHaveLength(4);
+    expect(sets.filter((x) => x.exerciseId === "bench_press").every((x) => (x.slot ?? 0) === 0)).toBe(true);
+  });
+
+  it("remembers estimated products and dishes without duplicates", async () => {
+    const skyr = { name: "Skyr nature", grams: 150, per100: { kcal: 60, protein: 10, carbs: 4, fat: 0.2, fiber: 0 }, category: "dairy" as const };
+    const banana = { name: "Banane", grams: 120, per100: { kcal: 90, protein: 1.1, carbs: 20, fat: 0.3, fiber: 2 }, category: "fruits" as const };
+    const first = await rememberProducts([skyr, banana]);
+    expect(first.every(Boolean)).toBe(true);
+    // Same names (different case/accents) → same ids, nothing new.
+    const again = await rememberProducts([{ ...skyr, name: "skyr  Nature" }, { ...banana, name: "BANANE" }]);
+    expect(again).toEqual(first);
+    const mem = await estimationMemory();
+    expect(mem.products.filter((p) => p.name.toLowerCase().includes("skyr"))).toHaveLength(1);
+
+    const [mealId, created] = await rememberMeal("Assiette de curry poulet", [skyr], "lunch");
+    expect(created).toBe(true);
+    const [sameId, createdAgain] = await rememberMeal("assiette de curry  poulet", [banana], "dinner");
+    expect(createdAgain).toBe(false);
+    expect(sameId).toBe(mealId);
   });
 });

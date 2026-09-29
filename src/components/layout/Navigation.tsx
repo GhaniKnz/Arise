@@ -9,7 +9,7 @@ import { AriseMark, AriseWordmark } from "@/components/icons/AriseLogo";
 import { RankBadge, XpBar } from "@/components/game/LevelBadge";
 import { IconButton } from "@/components/ui/Button";
 import { Sweep } from "@/components/ui/Effects";
-import { isActive, PRIMARY_NAV, SECONDARY_NAV, type NavItem } from "@/lib/nav";
+import { activeHref, isActive, PRIMARY_NAV, SECONDARY_NAV, type NavItem } from "@/lib/nav";
 import { openSheet } from "@/lib/system/ui";
 import { titleFor } from "@/lib/domain/game";
 import { cn } from "@/lib/utils/cn";
@@ -40,6 +40,7 @@ function SideLink({ item, active }: { item: NavItem; active: boolean }) {
 export function Sidebar() {
   const pathname = usePathname();
   const { profile, ledger } = useGame();
+  const current = activeHref(pathname, [...PRIMARY_NAV, ...SECONDARY_NAV]);
   return (
     <aside className="fixed inset-y-0 left-0 z-40 hidden w-64 flex-col border-r border-line bg-abyss/70 backdrop-blur-xl lg:flex">
       <div className="px-5 pt-6 pb-4">
@@ -77,11 +78,11 @@ export function Sidebar() {
 
       <nav className="mt-5 flex-1 space-y-1 overflow-y-auto px-3 pb-4" aria-label="Navigation principale">
         {PRIMARY_NAV.map((item) => (
-          <SideLink key={item.href} item={item} active={isActive(pathname, item.href)} />
+          <SideLink key={item.href} item={item} active={item.href === current} />
         ))}
         <div className="label px-3 pt-5 pb-2 text-[10px]">Système</div>
         {SECONDARY_NAV.map((item) => (
-          <SideLink key={item.href} item={item} active={isActive(pathname, item.href)} />
+          <SideLink key={item.href} item={item} active={item.href === current} />
         ))}
       </nav>
 

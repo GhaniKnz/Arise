@@ -44,12 +44,21 @@ export function ExerciseListItem({ ex, onClick, trailing, selected }: { ex: Exer
   );
 }
 
-export function ExercisePickerSheet({ open, onClose, onPick, exclude = [] }: { open: boolean; onClose: () => void; onPick: (e: Exercise) => void; exclude?: string[] }) {
+/**
+ * Pick an exercise to add. `added` lists exercises already in the session or
+ * program: they stay pickable (an exercise can be done several times) and show a count.
+ */
+export function ExercisePickerSheet({ open, onClose, onPick, added = [] }: { open: boolean; onClose: () => void; onPick: (e: Exercise) => void; added?: string[] }) {
   const { all } = useExerciseLibrary();
   const [q, setQ] = useState("");
   const [muscle, setMuscle] = useState<Muscle | null>(null);
   const [creating, setCreating] = useState(false);
-  const list = useMemo(() => filterExercises(all, q, muscle).filter((e) => !exclude.includes(e.id)), [all, q, muscle, exclude]);
+  const list = useMemo(() => filterExercises(all, q, muscle), [all, q, muscle]);
+  const counts = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const id of added) m.set(id, (m.get(id) ?? 0) + 1);
+    return m;
+  }, [added]);
 
   const pick = (e: Exercise) => {
     onPick(e);
@@ -80,7 +89,17 @@ export function ExercisePickerSheet({ open, onClose, onPick, exclude = [] }: { o
         <ul className="mt-1 space-y-0.5">
           {list.map((e) => (
             <li key={e.id}>
-              <ExerciseListItem ex={e} onClick={() => pick(e)} trailing={<Plus className="size-4 text-arise" />} />
+              <ExerciseListItem
+                ex={e}
+                onClick={() => pick(e)}
+                selected={counts.has(e.id)}
+                trailing={
+                  <span className="flex shrink-0 items-center gap-1.5">
+                    {counts.has(e.id) && <span className="rounded-full bg-arise/15 px-1.5 py-0.5 text-[10px] font-semibold text-arise">déjà ×{counts.get(e.id)}</span>}
+                    <Plus className="size-4 text-arise" />
+                  </span>
+                }
+              />
             </li>
           ))}
         </ul>

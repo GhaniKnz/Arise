@@ -121,3 +121,12 @@ Chaque vue gère : **chargement** (skeletons), **vide** (message + action princi
 * Données locales par défaut ; export JSON complet, import, suppression photos / historique / tout.
 * Routes IA : clé côté serveur uniquement, code d'accès optionnel (`ARISE_ACCESS_CODE`), limitation de débit par IP, validation Zod des entrées et sorties.
 * Supabase : RLS `user_id = auth.uid()` sur toutes les tables, bucket photos privé par dossier utilisateur.
+
+## Ajouts : recettes, prix, IA multi-moteur
+
+* **Recettes** (`data/recipes.ts`, `data/shop.ts`, `domain/recipes.ts`) : chaque ingrédient pointe vers un article du catalogue de courses (rayon, format, prix indicatif discount/supermarché) lui-même relié à la base nutritionnelle → macros, coût par portion et liste de courses sont **calculés**, jamais saisis. Les prix personnels de l'utilisateur (kv `shop:prices`) remplacent les prix indicatifs.
+* **Prix réels** : `/api/prices?category=…` interroge Open Prices (France, 6 mois), agrège par enseigne (médiane, nb de relevés), cache 12 h.
+* **IA** : `lib/ai/server.ts#pickEngine` choisit Claude ou Gemini selon les clés disponibles et la préférence ; `lib/ai/gemini.ts` appelle l'API REST (`generateContent` avec `responseJsonSchema`, `streamGenerateContent` en SSE pour le coach) et bascule de modèle sur quota (429) ou surcharge (503).
+* **Mémoire des estimations** : la liste des produits (`foods` source `custom`/`ai`) et des repas enregistrés est envoyée avec la photo ; l'IA renvoie `known_id` / `known_meal_id`. Les nouveaux produits sont mémorisés (source `ai`, dédoublonnés par nom normalisé), les plats composés deviennent des « Repas ».
+* **Exercices en double** : un même exercice peut apparaître plusieurs fois dans une séance ; les séries portent un `slot` (occurrence) et chaque bloc compare avec la même occurrence de la séance précédente.
+

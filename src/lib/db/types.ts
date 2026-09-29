@@ -265,6 +265,11 @@ export interface Session extends BaseRow {
 export interface WorkoutSet extends BaseRow {
   sessionId: string;
   exerciseId: string;
+  /**
+   * Which occurrence of the exercise in the session the set belongs to, when
+   * the same exercise appears several times (0 = first, the default).
+   */
+  slot?: number;
   date: DayKey;
   order: number;
   weightKg: number;

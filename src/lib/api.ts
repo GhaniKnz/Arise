@@ -2,6 +2,32 @@
 
 const CODE_KEY = "arise:access-code";
 const AI_KEY = "arise:anthropic-key";
+const GEMINI_KEY = "arise:gemini-key";
+const PROVIDER_KEY = "arise:ai-provider";
+
+export type AiProviderPref = "auto" | "gemini" | "claude";
+
+function read(key: string): string {
+  try {
+    return localStorage.getItem(key) ?? "";
+  } catch {
+    return "";
+  }
+}
+
+function write(key: string, value: string) {
+  try {
+    if (value) localStorage.setItem(key, value);
+    else localStorage.removeItem(key);
+  } catch {
+    /* storage unavailable */
+  }
+}
+
+export const getGeminiKey = () => read(GEMINI_KEY);
+export const setGeminiKey = (key: string) => write(GEMINI_KEY, key);
+export const getAiProvider = (): AiProviderPref => (read(PROVIDER_KEY) as AiProviderPref) || "auto";
+export const setAiProvider = (p: AiProviderPref) => write(PROVIDER_KEY, p === "auto" ? "" : p);
 
 export function getAccessCode(): string {
   try {
@@ -44,6 +70,10 @@ export function apiHeaders(init?: HeadersInit): Headers {
   if (code) headers.set("x-arise-code", code);
   const key = getUserAiKey();
   if (key) headers.set("x-anthropic-key", key);
+  const gemini = getGeminiKey();
+  if (gemini) headers.set("x-gemini-key", gemini);
+  const provider = getAiProvider();
+  if (provider !== "auto") headers.set("x-ai-provider", provider);
   return headers;
 }
 

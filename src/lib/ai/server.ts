@@ -18,14 +18,37 @@ export const FALLBACK = {
  * Uses the server key when configured; otherwise accepts a key the user
  * pasted in Settings (sent per request, never stored server-side).
  */
-export function aiClient(req: Request): Anthropic | Response {
-  const serverKey = process.env.ANTHROPIC_API_KEY;
+export function anthropicKey(req: Request): string | undefined {
+  const serverKey = process.env.ANTHROPIC_API_KEY?.trim();
   const userKey = req.headers.get("x-anthropic-key")?.trim();
-  const apiKey = serverKey || (userKey && userKey.startsWith("sk-ant-") ? userKey : undefined);
-  if (!apiKey) {
-    return json({ error: "ai_not_configured", message: "IA non configurée : ajoute ANTHROPIC_API_KEY sur le serveur ou ta clé dans Réglages → IA." }, 503);
-  }
+  return serverKey || (userKey && userKey.startsWith("sk-ant-") ? userKey : undefined);
+}
+
+export function aiClient(req: Request): Anthropic | Response {
+  const apiKey = anthropicKey(req);
+  if (!apiKey) return notConfigured();
   return new Anthropic({ apiKey, maxRetries: 2, timeout: 120_000 });
+}
+
+export const notConfigured = () =>
+  json({ error: "ai_not_configured", message: "IA non configurée : ajoute une clé Gemini (gratuite) ou Claude dans Réglages → IA, ou sur le serveur." }, 503);
+
+export type AiTask = "meal" | "coach" | "report";
+export type AiEngine = { provider: "claude"; client: Anthropic } | { provider: "gemini"; key: string };
+
+/**
+ * Chooses the engine: the user's preference (Settings → IA, header
+ * x-ai-provider) or ARISE_AI_PROVIDER; in "auto", photo estimation prefers
+ * Gemini (free tier) and the coach/report prefer Claude, each falling back
+ * to whichever key is available.
+ */
+export function pickEngine(req: Request, task: AiTask, geminiKeyValue: string | undefined): AiEngine | Response {
+  const claudeKey = anthropicKey(req);
+  const pref = (req.headers.get("x-ai-provider") || process.env.ARISE_AI_PROVIDER || "auto").toLowerCase();
+  const claude = claudeKey ? ({ provider: "claude", client: new Anthropic({ apiKey: claudeKey, maxRetries: 2, timeout: 120_000 }) } as const) : null;
+  const gemini = geminiKeyValue ? ({ provider: "gemini", key: geminiKeyValue } as const) : null;
+  const order = pref === "gemini" ? [gemini, claude] : pref === "claude" ? [claude, gemini] : task === "meal" ? [gemini, claude] : [claude, gemini];
+  return order.find((e) => e != null) ?? notConfigured();
 }
 
 export function aiError(e: unknown): Response {

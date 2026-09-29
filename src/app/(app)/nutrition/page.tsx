@@ -1,6 +1,6 @@
 "use client";
 
-import { BookOpen, Camera, Plus, ScanBarcode } from "lucide-react";
+import { BookOpen, Camera, ChefHat, Plus, ScanBarcode } from "lucide-react";
 import Link from "next/link";
 import { Suspense, useMemo, useState } from "react";
 import { useGame } from "@/components/providers/GameProvider";
@@ -88,20 +88,21 @@ function NutritionJournal() {
             </div>
           </Panel>
 
-          <div className="grid grid-cols-4 gap-2">
+          <div className="grid grid-cols-5 gap-1.5 sm:gap-2">
             {[
               { href: `/nutrition/add?date=${date}`, label: "Ajouter", icon: Plus, primary: true },
-              { href: "/nutrition/scan", label: "Photo IA", icon: Camera },
-              { href: "/nutrition/barcode", label: "Code-barres", icon: ScanBarcode },
+              { href: `/nutrition/scan?date=${date}`, label: "Photo IA", icon: Camera },
+              { href: "/nutrition/barcode", label: "Scanner", icon: ScanBarcode },
+              { href: "/nutrition/recipes", label: "Recettes", icon: ChefHat },
               { href: "/nutrition/library", label: "Repas", icon: BookOpen },
             ].map((a) => (
               <Link
                 key={a.href}
                 href={a.href}
-                className={`flex flex-col items-center gap-1.5 rounded-2xl border px-1 py-3 text-center text-[12px] font-medium transition active:scale-95 ${a.primary ? "bg-arise-gradient border-transparent text-white shadow-glow" : "border-line bg-deep/60 text-ink-2 hover:border-line-strong"}`}
+                className={`flex min-w-0 flex-col items-center gap-1.5 rounded-2xl border px-0.5 py-3 text-center text-[11px] font-medium transition active:scale-95 sm:text-[12px] ${a.primary ? "bg-arise-gradient border-transparent text-white shadow-glow" : "border-line bg-deep/60 text-ink-2 hover:border-line-strong"}`}
               >
-                <a.icon className="size-5" />
-                {a.label}
+                <a.icon className="icon-glow size-5" />
+                <span className="w-full truncate">{a.label}</span>
               </Link>
             ))}
           </div>

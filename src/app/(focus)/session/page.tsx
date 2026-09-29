@@ -19,7 +19,7 @@ import { Panel } from "@/components/ui/Panel";
 import { Sheet } from "@/components/ui/Sheet";
 import { useActiveSession, useExerciseLibrary, useRoutine, useSessionSets } from "@/lib/db/hooks";
 import { routineColor, routineIcon } from "@/lib/data/routines";
-import { addExerciseToSession, deleteSession, finishSession, removeExerciseFromSession, renameSession, reorderSessionExercises } from "@/lib/db/repos/workout";
+import { addExerciseToSession, blockSets, deleteSession, finishSession, removeExerciseFromSession, renameSession, reorderSessionExercises, slotAt } from "@/lib/db/repos/workout";
 import { useRestTimer } from "@/lib/hooks/useRestTimer";
 import { useSessionHistory } from "@/lib/hooks/useSessionHistory";
 import { cue } from "@/lib/system/feedback";
@@ -61,12 +61,13 @@ export default function SessionPage() {
     }
   }, [session]);
 
-  const ids = session?.exerciseIds ?? [];
+  const ids = useMemo(() => session?.exerciseIds ?? [], [session?.exerciseIds]);
   const current = Math.min(index, Math.max(0, ids.length - 1));
   const exerciseId = ids[current];
   const exercise = exerciseId ? byId(exerciseId) : undefined;
-  const exSets = useMemo(() => (sets ?? []).filter((s) => s.exerciseId === exerciseId).sort((a, b) => Number(b.warmup) - Number(a.warmup) || a.order - b.order), [sets, exerciseId]);
-  const routineEx = routine?.exercises.find((e) => e.exerciseId === exerciseId);
+  const slot = slotAt(ids, current);
+  const exSets = useMemo(() => blockSets(sets ?? [], ids, current).sort((a, b) => Number(b.warmup) - Number(a.warmup) || a.order - b.order), [sets, ids, current]);
+  const routineEx = routine?.exercises.filter((e) => e.exerciseId === exerciseId)[slot];
   const repRange: [number, number] = routineEx ? [routineEx.repsMin, routineEx.repsMax] : [8, 12];
   const restSec = routineEx?.restSec ?? exercise?.restSec ?? profile?.restTimerSec ?? 90;
 
@@ -84,11 +85,11 @@ export default function SessionPage() {
     );
 
   const elapsed = (now - new Date(session.startedAt).getTime()) / 1000;
-  const progressOf = (id: string) => {
-    const s = sets.filter((x) => x.exerciseId === id && !x.warmup);
+  const progressOf = (index: number) => {
+    const s = blockSets(sets, ids, index).filter((x) => !x.warmup);
     return [s.filter((x) => x.done).length, s.length] as const;
   };
-  const [doneHere, totalHere] = exerciseId ? progressOf(exerciseId) : [0, 0];
+  const [doneHere, totalHere] = exerciseId ? progressOf(current) : [0, 0];
   const exerciseComplete = totalHere > 0 && doneHere === totalHere;
 
   const onFinish = async (opts: { rpe?: number; notes?: string }) => {
@@ -140,11 +141,12 @@ export default function SessionPage() {
         <nav className="-mx-4 mb-4 flex gap-1.5 overflow-x-auto px-4 pb-1 no-scrollbar" aria-label="Exercices de la séance">
           {ids.map((id, i) => {
             const ex = byId(id);
-            const [d, t] = progressOf(id);
+            const [d, t] = progressOf(i);
             const complete = t > 0 && d === t;
+            const n = slotAt(ids, i);
             return (
               <button
-                key={id}
+                key={`${id}-${n}`}
                 type="button"
                 onClick={() => setIndex(i)}
                 aria-current={i === current ? "step" : undefined}
@@ -155,6 +157,7 @@ export default function SessionPage() {
               >
                 {ex && <ExerciseIcon exercise={ex} className="h-5 w-4" />}
                 <span className="max-w-28 truncate">{ex?.name ?? "?"}</span>
+                {n > 0 && <span className="rounded bg-violet/20 px-1 text-[10px] font-bold text-violet-2">×{n + 1}</span>}
                 <span className="tabular opacity-70">
                   {d}/{t}
                 </span>
@@ -166,11 +169,12 @@ export default function SessionPage() {
 
       {exercise ? (
         <AnimatePresence mode="wait">
-          <motion.div key={exercise.id} initial={{ opacity: 0, x: 24 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -24 }} transition={{ duration: 0.22 }}>
+          <motion.div key={`${exercise.id}-${slot}`} initial={{ opacity: 0, x: 24 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -24 }} transition={{ duration: 0.22 }}>
             <Panel>
               <ExerciseBlock
                 session={session}
                 exercise={exercise}
+                slot={slot}
                 sets={exSets}
                 history={history?.get(exercise.id)}
                 repRange={repRange}
@@ -218,7 +222,7 @@ export default function SessionPage() {
       <ExercisePickerSheet
         open={picking}
         onClose={() => setPicking(false)}
-        exclude={ids}
+        added={ids}
         onPick={async (e) => {
           await addExerciseToSession(session, e.id, 3, 8);
           setIndex(ids.length);
@@ -229,17 +233,21 @@ export default function SessionPage() {
         <ul className="space-y-2">
           {ids.map((id, i) => {
             const ex = byId(id);
-            const [d, t] = progressOf(id);
+            const [d, t] = progressOf(i);
+            const n = slotAt(ids, i);
             const move = (dir: -1 | 1) => {
               const next = [...ids];
               [next[i], next[i + dir]] = [next[i + dir], next[i]];
               void reorderSessionExercises(session, next);
             };
             return (
-              <li key={id} className="flex items-center gap-2 rounded-xl border border-line bg-white/[0.02] p-2">
+              <li key={`${id}-${n}`} className="flex items-center gap-2 rounded-xl border border-line bg-white/[0.02] p-2">
                 {ex && <ExerciseIcon exercise={ex} className="h-10 w-7" />}
                 <button type="button" className="min-w-0 flex-1 text-left" onClick={() => { setIndex(i); setOverview(false); }}>
-                  <span className="block truncate text-sm font-medium text-ink">{ex?.name}</span>
+                  <span className="block truncate text-sm font-medium text-ink">
+                    {ex?.name}
+                    {n > 0 && <span className="ml-1.5 rounded bg-violet/20 px-1 text-[10px] font-bold text-violet-2">×{n + 1}</span>}
+                  </span>
                   <span className="text-[11px] text-ink-3">
                     {d}/{t} séries
                   </span>
@@ -250,7 +258,7 @@ export default function SessionPage() {
                 <IconButton label="Descendre" size="sm" disabled={i === ids.length - 1} onClick={() => move(1)}>
                   <ArrowDown />
                 </IconButton>
-                <IconButton label={`Retirer ${ex?.name ?? "l'exercice"}`} size="sm" onClick={() => removeExerciseFromSession(session, id)}>
+                <IconButton label={`Retirer ${ex?.name ?? "l'exercice"}`} size="sm" onClick={() => removeExerciseFromSession(session, i)}>
                   <Trash2 />
                 </IconButton>
               </li>

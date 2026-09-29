@@ -12,7 +12,7 @@ import { EQUIPMENT_LABEL, MUSCLE_LABEL } from "@/lib/data/exercises";
 import { addSet, deleteSet, setDone, updateSet } from "@/lib/db/repos/workout";
 import type { Exercise, Session, WorkoutSet } from "@/lib/db/types";
 import { applySet, detectPRs, e1rm, gainVsPrevious, progressionHint, type PRKind, type SetGain } from "@/lib/domain/strength";
-import type { ExerciseHistory } from "@/lib/hooks/useSessionHistory";
+import { lastForSlot, type ExerciseHistory } from "@/lib/hooks/useSessionHistory";
 import { toast } from "@/lib/system/store";
 import { formatShort } from "@/lib/utils/date";
 import { fmtDec } from "@/lib/utils/format";
@@ -27,14 +27,17 @@ interface Props {
   repRange: [number, number];
   onSetCompleted?: (info: { set: WorkoutSet; prs: PRKind[]; gain: SetGain | null; beat?: string; values: { weightKg: number; reps: number } }) => void;
   compactHeader?: boolean;
+  /** Occurrence of the exercise in the session (0 = first). */
+  slot?: number;
 }
 
-export function ExerciseBlock({ session, exercise, sets, history, repRange, onSetCompleted, compactHeader }: Props) {
+export function ExerciseBlock({ session, exercise, sets, history, repRange, onSetCompleted, compactHeader, slot = 0 }: Props) {
+  const last = useMemo(() => lastForSlot(history, slot) ?? [], [history, slot]);
   const [menuSet, setMenuSet] = useState<WorkoutSet | null>(null);
   const [editing, setEditing] = useState(false);
   const weightedOf = (w: number) => exercise.weighted || w > 0;
   const working = sets.filter((s) => !s.warmup);
-  const hint = useMemo(() => progressionHint(history?.last.map((s) => ({ weightKg: s.weightKg, reps: s.reps })) ?? [], repRange[0], repRange[1], exercise.primary === "quads" || exercise.primary === "hamstrings" || exercise.primary === "glutes" ? 5 : 2.5), [history, repRange, exercise.primary]);
+  const hint = useMemo(() => progressionHint(last.map((s) => ({ weightKg: s.weightKg, reps: s.reps })), repRange[0], repRange[1], exercise.primary === "quads" || exercise.primary === "hamstrings" || exercise.primary === "glutes" ? 5 : 2.5), [last, repRange, exercise.primary]);
 
   // Sets that are PRs relative to history + earlier sets of this session.
   const prIds = useMemo(() => {
@@ -67,7 +70,7 @@ export function ExerciseBlock({ session, exercise, sets, history, repRange, onSe
         else if (prs.includes("e1rm")) beat = `1RM estimé : ${fmtDec(bests.e1rm)} → ${fmtDec(e1rm(values.weightKg, values.reps))} kg`;
       }
       const idx = working.indexOf(s);
-      const prev = s.warmup ? undefined : (history?.last[idx] ?? history?.last.at(-1));
+      const prev = s.warmup ? undefined : (last[idx] ?? last.at(-1));
       onSetCompleted?.({ set: s, prs, beat, gain: s.warmup ? null : gainVsPrevious(prev, values, weightedOf(values.weightKg)), values });
     }
   };
@@ -113,10 +116,10 @@ export function ExerciseBlock({ session, exercise, sets, history, repRange, onSe
       <div className="mt-3 space-y-1.5 rounded-xl border border-line bg-white/[0.02] px-3 py-2 text-[13px]">
         <p className="flex items-center gap-2 text-ink-2">
           <History className="size-4 shrink-0 text-ink-3" />
-          {history?.last.length ? (
+          {last.length ? (
             <span className="min-w-0">
-              Dernière séance{history.lastDate ? ` (${formatShort(history.lastDate)})` : ""} :{" "}
-              <strong className="text-ink">{history.last.map((s) => (weightedOf(s.weightKg) && s.weightKg > 0 ? `${fmtDec(s.weightKg)} × ${s.reps}` : `${s.reps}`)).join(" · ")}</strong>
+              Dernière séance{history?.lastDate ? ` (${formatShort(history.lastDate)})` : ""} :{" "}
+              <strong className="text-ink">{last.map((s) => (weightedOf(s.weightKg) && s.weightKg > 0 ? `${fmtDec(s.weightKg)} × ${s.reps}` : `${s.reps}`)).join(" · ")}</strong>
             </span>
           ) : (
             "Première fois : trouve une charge où tu gardes 1–3 reps en réserve."
@@ -140,7 +143,7 @@ export function ExerciseBlock({ session, exercise, sets, history, repRange, onSe
         <div className="space-y-1">
           {sets.map((s) => {
             const workIdx = working.indexOf(s);
-            const prev = s.warmup ? undefined : (history?.last[workIdx] ?? history?.last.at(-1));
+            const prev = s.warmup ? undefined : (last[workIdx] ?? last.at(-1));
             return (
               <SetRow
                 key={s.id}
@@ -158,10 +161,10 @@ export function ExerciseBlock({ session, exercise, sets, history, repRange, onSe
           })}
         </div>
         <div className="mt-2 flex items-center gap-2">
-          <Button variant="secondary" size="sm" className="flex-1" onClick={() => addSet(session, exercise.id)}>
+          <Button variant="secondary" size="sm" className="flex-1" onClick={() => addSet(session, exercise.id, false, slot)}>
             <Plus /> Ajouter série
           </Button>
-          <Button variant="ghost" size="sm" onClick={() => addSet(session, exercise.id, true)}>
+          <Button variant="ghost" size="sm" onClick={() => addSet(session, exercise.id, true, slot)}>
             <Flame /> Échauffement
           </Button>
           <span className="ml-auto text-xs text-ink-3 tabular">
