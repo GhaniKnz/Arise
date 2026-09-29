@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Chip, Field, NumberInput, Segmented } from "@/components/ui/Fields";
 import { Sheet } from "@/components/ui/Sheet";
@@ -11,6 +11,7 @@ import { cue } from "@/lib/system/feedback";
 import { toast } from "@/lib/system/store";
 import type { DayKey } from "@/lib/utils/date";
 import { fmtDec, fmtInt } from "@/lib/utils/format";
+import { useResetOnOpen } from "@/lib/hooks/useResetOnOpen";
 
 type Target = { kind: "meal"; meal: SavedMeal } | { kind: "recipe"; recipe: Recipe };
 
@@ -18,11 +19,14 @@ export function LogComposedSheet({ open, onClose, target, date, slot: initialSlo
   const [slot, setSlot] = useState<MealSlot>(initialSlot);
   const [factor, setFactor] = useState<number | undefined>(1);
 
-  useEffect(() => {
-    if (!open || !target) return;
-    setSlot(target.kind === "meal" ? (target.meal.defaultSlot ?? initialSlot) : initialSlot);
-    setFactor(1);
-  }, [open, target, initialSlot]);
+  useResetOnOpen(
+    open && !!target,
+    () => {
+      setSlot(target?.kind === "meal" ? (target.meal.defaultSlot ?? initialSlot) : initialSlot);
+      setFactor(1);
+    },
+    target?.kind === "meal" ? target.meal.id : target?.recipe.id,
+  );
 
   if (!target) return null;
   const items = target.kind === "meal" ? target.meal.items : target.recipe.items;

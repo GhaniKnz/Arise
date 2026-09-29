@@ -1,24 +1,11 @@
 "use client";
 
 import { MoveHorizontal } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
+import { useBlobUrl } from "@/lib/hooks/useBlobUrl";
 import type { ProgressPhoto } from "@/lib/db/types";
 import { formatShort } from "@/lib/utils/date";
 import { fmtDec } from "@/lib/utils/format";
-
-export function useBlobUrl(blob: Blob | undefined): string | null {
-  const [url, setUrl] = useState<string | null>(null);
-  useEffect(() => {
-    if (!blob) {
-      setUrl(null);
-      return;
-    }
-    const u = URL.createObjectURL(blob);
-    setUrl(u);
-    return () => URL.revokeObjectURL(u);
-  }, [blob]);
-  return url;
-}
 
 function caption(p: ProgressPhoto) {
   return [formatShort(p.date), p.weightKg ? `${fmtDec(p.weightKg)} kg` : null, p.waistCm ? `taille ${fmtDec(p.waistCm)}` : null].filter(Boolean).join(" · ");

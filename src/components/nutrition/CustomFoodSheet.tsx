@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Field, NumberInput, Segmented, Select, TextInput } from "@/components/ui/Fields";
 import { Notice } from "@/components/ui/Feedback";
@@ -12,6 +12,7 @@ import type { FoodCategory, FoodItem, Nova } from "@/lib/db/types";
 import { kcalFromMacros } from "@/lib/domain/nutrition";
 import { toast } from "@/lib/system/store";
 import { fmtInt } from "@/lib/utils/format";
+import { useResetOnOpen } from "@/lib/hooks/useResetOnOpen";
 
 type Draft = {
   name: string;
@@ -49,14 +50,16 @@ export function CustomFoodSheet({
   barcode?: string;
 }) {
   const [d, setD] = useState<Draft>(EMPTY);
-  useEffect(() => {
-    if (!open) return;
-    setD(
-      food
-        ? { name: food.name, brand: food.brand ?? "", category: food.category, unit: food.unit ?? "g", kcal: food.kcal, protein: food.protein, carbs: food.carbs, fat: food.fat, fiber: food.fiber, sugar: food.sugar, satFat: food.satFat, salt: food.salt, defaultGrams: food.defaultGrams, nova: food.nova, barcode: food.barcode }
-        : { ...EMPTY, barcode },
-    );
-  }, [open, food, barcode]);
+  useResetOnOpen(
+    open,
+    () =>
+      setD(
+        food
+          ? { name: food.name, brand: food.brand ?? "", category: food.category, unit: food.unit ?? "g", kcal: food.kcal, protein: food.protein, carbs: food.carbs, fat: food.fat, fiber: food.fiber, sugar: food.sugar, satFat: food.satFat, salt: food.salt, defaultGrams: food.defaultGrams, nova: food.nova, barcode: food.barcode }
+          : { ...EMPTY, barcode },
+      ),
+    food?.id ?? barcode,
+  );
 
   const set = <K extends keyof Draft>(k: K, v: Draft[K]) => setD((s) => ({ ...s, [k]: v }));
   const atwater = kcalFromMacros({ protein: d.protein ?? 0, carbs: d.carbs ?? 0, fat: d.fat ?? 0 });

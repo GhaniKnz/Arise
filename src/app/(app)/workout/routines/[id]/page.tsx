@@ -2,7 +2,7 @@
 
 import { ArrowDown, ArrowLeft, ArrowUp, Plus, Trash2 } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { MuscleIcon } from "@/components/icons/MuscleIcon";
 import { ExercisePickerSheet } from "@/components/workout/ExercisePickerSheet";
 import { Button, IconButton } from "@/components/ui/Button";
@@ -30,15 +30,13 @@ export default function RoutineEditorPage() {
   const [picking, setPicking] = useState(false);
   const [loaded, setLoaded] = useState(isNew);
 
-  useEffect(() => {
-    if (routine && !loaded) {
-      setName(routine.name);
-      setType(routine.type);
-      setItems(routine.exercises);
-      setNotes(routine.notes ?? "");
-      setLoaded(true);
-    }
-  }, [routine, loaded]);
+  if (routine && !loaded) {
+    setName(routine.name);
+    setType(routine.type);
+    setItems(routine.exercises);
+    setNotes(routine.notes ?? "");
+    setLoaded(true);
+  }
 
   if (!isNew && routine === undefined) return <PageSkeleton />;
   if (!isNew && routine === null) return <EmptyState title="Programme introuvable" action={<Button onClick={() => router.push("/workout")}>Retour</Button>} />;

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useGame } from "@/components/providers/GameProvider";
 import { Button } from "@/components/ui/Button";
 import { Chip, Field, NumberInput, TextInput } from "@/components/ui/Fields";
@@ -11,6 +11,7 @@ import { cardioKcal } from "@/lib/domain/energy";
 import { toast } from "@/lib/system/store";
 import { closeSheet } from "@/lib/system/ui";
 import { relativeDayLabel, type DayKey } from "@/lib/utils/date";
+import { useResetOnOpen } from "@/lib/hooks/useResetOnOpen";
 
 export const CARDIO_LABEL: Record<CardioType, string> = {
   walk: "Marche",
@@ -39,12 +40,10 @@ export function CardioSheet({ open, date }: { open: boolean; date: DayKey }) {
   const [kcal, setKcal] = useState<number | undefined>();
   const [notes, setNotes] = useState("");
 
-  useEffect(() => {
-    if (open) {
-      setKcal(undefined);
-      setNotes("");
-    }
-  }, [open]);
+  useResetOnOpen(open, () => {
+    setKcal(undefined);
+    setNotes("");
+  });
 
   const estimate = useMemo(
     () => (duration ? cardioKcal(type, duration, currentWeight ?? 75, type === "incline_walk" || type === "walk" ? incline : undefined, speed) : 0),

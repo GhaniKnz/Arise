@@ -1,7 +1,7 @@
 "use client";
 
 import { animate, useMotionValue, useReducedMotion } from "motion/react";
-import { useEffect, useRef } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
 interface Props {
   value: number;
@@ -18,7 +18,12 @@ export function AnimatedNumber({ value, format = defaultFormat, duration = 0.9, 
   const mv = useMotionValue(0);
   const reduce = useReducedMotion();
   const formatRef = useRef(format);
-  formatRef.current = format;
+  // The initial text is fixed at mount; later frames are written straight to the DOM.
+  const [initial] = useState(() => format(reduce ? value : 0));
+
+  useLayoutEffect(() => {
+    formatRef.current = format;
+  });
 
   useEffect(() => {
     const node = ref.current;
@@ -40,7 +45,7 @@ export function AnimatedNumber({ value, format = defaultFormat, duration = 0.9, 
 
   return (
     <span ref={ref} className={className}>
-      {format(reduce ? value : mv.get())}
+      {initial}
     </span>
   );
 }

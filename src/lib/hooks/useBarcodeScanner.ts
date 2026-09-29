@@ -17,7 +17,9 @@ export function useBarcodeScanner(onCode: (code: string) => void) {
   const [status, setStatus] = useState<Status>("idle");
   const stopRef = useRef<() => void>(() => {});
   const onCodeRef = useRef(onCode);
-  onCodeRef.current = onCode;
+  useEffect(() => {
+    onCodeRef.current = onCode;
+  });
 
   const stop = useCallback(() => {
     stopRef.current();

@@ -1,7 +1,7 @@
 "use client";
 
 import { Camera, ImageUp } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { useGame } from "@/components/providers/GameProvider";
 import { Button } from "@/components/ui/Button";
 import { Segmented } from "@/components/ui/Fields";
@@ -9,6 +9,8 @@ import { Notice } from "@/components/ui/Feedback";
 import { Sheet } from "@/components/ui/Sheet";
 import { addPhoto } from "@/lib/db/repos/body";
 import type { Pose } from "@/lib/db/types";
+import { useBlobUrl } from "@/lib/hooks/useBlobUrl";
+import { useResetOnOpen } from "@/lib/hooks/useResetOnOpen";
 import { toast } from "@/lib/system/store";
 import { closeSheet } from "@/lib/system/ui";
 import { relativeDayLabel, type DayKey } from "@/lib/utils/date";
@@ -19,24 +21,12 @@ export function PhotoSheet({ open, date }: { open: boolean; date: DayKey }) {
   const { raw, currentWeight } = useGame();
   const [pose, setPose] = useState<Pose>("front");
   const [file, setFile] = useState<File | null>(null);
-  const [preview, setPreview] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const cameraRef = useRef<HTMLInputElement>(null);
   const galleryRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    if (!open) {
-      setFile(null);
-      setPreview(null);
-    }
-  }, [open]);
-
-  useEffect(() => {
-    if (!file) return;
-    const url = URL.createObjectURL(file);
-    setPreview(url);
-    return () => URL.revokeObjectURL(url);
-  }, [file]);
+  const preview = useBlobUrl(file);
+  useResetOnOpen(open, () => setFile(null));
 
   const save = async () => {
     if (!file) return;

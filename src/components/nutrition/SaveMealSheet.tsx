@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Field, TextInput } from "@/components/ui/Fields";
 import { Sheet } from "@/components/ui/Sheet";
@@ -9,12 +9,11 @@ import type { FoodEntry, MealSlot } from "@/lib/db/types";
 import { MEAL_LABEL, totalsOf } from "@/lib/domain/nutrition";
 import { toast } from "@/lib/system/store";
 import { fmtInt } from "@/lib/utils/format";
+import { useResetOnOpen } from "@/lib/hooks/useResetOnOpen";
 
 export function SaveMealSheet({ open, onClose, entries, slot }: { open: boolean; onClose: () => void; entries: FoodEntry[]; slot: MealSlot }) {
   const [name, setName] = useState("");
-  useEffect(() => {
-    if (open) setName(`${MEAL_LABEL[slot]} habituel`);
-  }, [open, slot]);
+  useResetOnOpen(open, () => setName(`${MEAL_LABEL[slot]} habituel`), slot);
   const items = entriesToIngredients(entries);
   const t = totalsOf(entries);
 

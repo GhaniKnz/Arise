@@ -1,7 +1,7 @@
 "use client";
 
 import { Heart, Trash2 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useGame } from "@/components/providers/GameProvider";
 import { Button, IconButton } from "@/components/ui/Button";
 import { Chip, Field, NumberInput, Segmented } from "@/components/ui/Fields";
@@ -17,6 +17,7 @@ import { cn } from "@/lib/utils/cn";
 import { relativeDayLabel, type DayKey } from "@/lib/utils/date";
 import { fmtDec, fmtInt } from "@/lib/utils/format";
 import { ScorePanel } from "./ScoreBadge";
+import { useResetOnOpen } from "@/lib/hooks/useResetOnOpen";
 
 interface Props {
   open: boolean;
@@ -37,11 +38,14 @@ export function FoodSheet({ open, onClose, food, date, meal: initialMeal, entry,
   const [meal, setMeal] = useState<MealSlot>(initialMeal);
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
-    if (!open) return;
-    setGrams(entry?.grams ?? food?.defaultGrams ?? 100);
-    setMeal(entry?.meal ?? initialMeal);
-  }, [open, food, entry, initialMeal]);
+  useResetOnOpen(
+    open,
+    () => {
+      setGrams(entry?.grams ?? food?.defaultGrams ?? 100);
+      setMeal(entry?.meal ?? initialMeal);
+    },
+    entry?.id ?? food?.id,
+  );
 
   const per100 = entry?.per100 ?? food ?? null;
   const n = useMemo(() => (per100 ? scaleNutrients(per100, grams ?? 0) : null), [per100, grams]);

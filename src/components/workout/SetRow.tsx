@@ -2,7 +2,7 @@
 
 import { motion } from "motion/react";
 import { Check } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import type { WorkoutSet } from "@/lib/db/types";
 import { cn } from "@/lib/utils/cn";
 import { fmtDec, parseNum } from "@/lib/utils/format";
@@ -24,8 +24,12 @@ const numText = (n: number) => (n ? String(n).replace(".", ",") : "");
 export function SetRow({ set, index, previous, weighted, onCommit, onToggleDone, onMenu, isPR }: Props) {
   const [w, setW] = useState(numText(set.weightKg));
   const [r, setR] = useState(numText(set.reps));
-  useEffect(() => setW(numText(set.weightKg)), [set.weightKg]);
-  useEffect(() => setR(numText(set.reps)), [set.reps]);
+  const [synced, setSynced] = useState({ weightKg: set.weightKg, reps: set.reps });
+  if (synced.weightKg !== set.weightKg || synced.reps !== set.reps) {
+    setSynced({ weightKg: set.weightKg, reps: set.reps });
+    setW(numText(set.weightKg));
+    setR(numText(set.reps));
+  }
 
   const values = () => ({ weightKg: Math.max(0, parseNum(w) ?? 0), reps: Math.max(0, Math.round(parseNum(r) ?? 0)) });
   const commit = () => {

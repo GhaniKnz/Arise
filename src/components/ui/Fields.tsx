@@ -2,7 +2,7 @@
 
 import { Minus, Plus } from "lucide-react";
 import { motion } from "motion/react";
-import { forwardRef, useEffect, useId, useState, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes, type TextareaHTMLAttributes } from "react";
+import { forwardRef, useId, useState, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes, type TextareaHTMLAttributes } from "react";
 import { cn } from "@/lib/utils/cn";
 import { parseNum } from "@/lib/utils/format";
 
@@ -59,11 +59,11 @@ export function NumberInput({ value, onChange, step = 1, min, max, unit, placeho
   const fmt = (v: number | undefined) => (v == null ? "" : String(Number(v.toFixed(decimals))).replace(".", ","));
   const [text, setText] = useState(fmt(value));
   const [focused, setFocused] = useState(false);
-
-  useEffect(() => {
-    if (!focused) setText(fmt(value));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [value, focused]);
+  const [shown, setShown] = useState(value);
+  if (!focused && value !== shown) {
+    setShown(value);
+    setText(fmt(value));
+  }
 
   const clampV = (v: number) => Math.min(max ?? Infinity, Math.max(min ?? -Infinity, v));
   const bump = (dir: 1 | -1) => {

@@ -1,7 +1,7 @@
 "use client";
 
 import { Loader2, Search } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useGame } from "@/components/providers/GameProvider";
 import { TextInput } from "@/components/ui/Fields";
 import { Sheet } from "@/components/ui/Sheet";
@@ -9,15 +9,14 @@ import { FOODS } from "@/lib/data/foods";
 import type { FoodItem } from "@/lib/db/types";
 import { useFoodSearch } from "@/lib/hooks/useFoodSearch";
 import { FoodRow } from "./FoodRow";
+import { useResetOnOpen } from "@/lib/hooks/useResetOnOpen";
 
 /** Search sheet that returns a food (used by meal and recipe editors). */
 export function FoodPickerSheet({ open, onClose, onPick, title = "Choisir un aliment" }: { open: boolean; onClose: () => void; onPick: (f: FoodItem) => void; title?: string }) {
   const { profile } = useGame();
   const [q, setQ] = useState("");
   const search = useFoodSearch(q);
-  useEffect(() => {
-    if (open) setQ("");
-  }, [open]);
+  useResetOnOpen(open, () => setQ(""));
   const goal = profile?.goal ?? "maintain";
   const suggestions = FOODS.filter((f) => ["meat", "fish", "eggs", "grains", "vegetables"].includes(f.category)).slice(0, 12);
 

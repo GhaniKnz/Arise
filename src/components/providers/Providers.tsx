@@ -6,6 +6,7 @@ import { GameWatcher } from "@/components/game/GameWatcher";
 import { SystemLayer } from "@/components/game/SystemLayer";
 import { GameProvider } from "./GameProvider";
 import { ServiceWorker } from "./ServiceWorker";
+import { SyncProvider } from "./SyncProvider";
 
 export function Providers({ children }: { children: ReactNode }) {
   return (
@@ -15,6 +16,7 @@ export function Providers({ children }: { children: ReactNode }) {
         <GameWatcher />
         <SystemLayer />
         <ServiceWorker />
+        <SyncProvider />
       </GameProvider>
     </MotionConfig>
   );

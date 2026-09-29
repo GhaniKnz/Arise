@@ -1,7 +1,7 @@
 "use client";
 
 import { Trash2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Button, IconButton } from "@/components/ui/Button";
 import { Field, NumberInput, Segmented, TextInput } from "@/components/ui/Fields";
 import { Sheet } from "@/components/ui/Sheet";
@@ -13,6 +13,7 @@ import { kcalFromMacros, MEAL_SLOTS } from "@/lib/domain/nutrition";
 import { toast } from "@/lib/system/store";
 import type { DayKey } from "@/lib/utils/date";
 import { fmtInt } from "@/lib/utils/format";
+import { useResetOnOpen } from "@/lib/hooks/useResetOnOpen";
 
 /** Add calories without a food (restaurant, estimate) — or edit such an entry. */
 export function QuickAddSheet({ open, onClose, date, meal: initialMeal, entry }: { open: boolean; onClose: () => void; date: DayKey; meal: MealSlot; entry?: FoodEntry | null }) {
@@ -23,15 +24,18 @@ export function QuickAddSheet({ open, onClose, date, meal: initialMeal, entry }:
   const [c, setC] = useState<number | undefined>();
   const [f, setF] = useState<number | undefined>();
 
-  useEffect(() => {
-    if (!open) return;
-    setName(entry?.name ?? "");
-    setMeal(entry?.meal ?? initialMeal);
-    setKcal(entry?.kcal);
-    setP(entry?.protein || undefined);
-    setC(entry?.carbs || undefined);
-    setF(entry?.fat || undefined);
-  }, [open, entry, initialMeal]);
+  useResetOnOpen(
+    open,
+    () => {
+      setName(entry?.name ?? "");
+      setMeal(entry?.meal ?? initialMeal);
+      setKcal(entry?.kcal);
+      setP(entry?.protein || undefined);
+      setC(entry?.carbs || undefined);
+      setF(entry?.fat || undefined);
+    },
+    entry?.id,
+  );
 
   const fromMacros = kcalFromMacros({ protein: p ?? 0, carbs: c ?? 0, fat: f ?? 0 });
   const effectiveKcal = kcal ?? (fromMacros > 0 ? Math.round(fromMacros) : undefined);

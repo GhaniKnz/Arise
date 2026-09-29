@@ -2,7 +2,7 @@
 
 import { AnimatePresence, motion, useDragControls, type PanInfo } from "motion/react";
 import { X } from "lucide-react";
-import { useEffect, useId, useRef, type ReactNode } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { cn } from "@/lib/utils/cn";
 import { useIsWide } from "@/lib/hooks/useMediaQuery";
@@ -31,7 +31,9 @@ export function Sheet({ open, onClose, title, description, children, footer, siz
   const panelRef = useRef<HTMLDivElement>(null);
   const dragControls = useDragControls();
   const onCloseRef = useRef(onClose);
-  onCloseRef.current = onClose;
+  useLayoutEffect(() => {
+    onCloseRef.current = onClose;
+  });
   const mounted = useMounted();
 
   useEffect(() => {

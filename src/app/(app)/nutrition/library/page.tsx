@@ -2,7 +2,7 @@
 
 import { ArrowLeft, ChefHat, PenLine, Plus, Trash2, UtensilsCrossed } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useState } from "react";
 import { useGame } from "@/components/providers/GameProvider";
 import { CustomFoodSheet } from "@/components/nutrition/CustomFoodSheet";
 import { FoodRow } from "@/components/nutrition/FoodRow";
@@ -19,6 +19,7 @@ import type { FoodItem, Ingredient, MealSlot, Recipe, SavedMeal } from "@/lib/db
 import { ingredientsTotals, MEAL_SLOTS } from "@/lib/domain/nutrition";
 import { toast } from "@/lib/system/store";
 import { fmtInt } from "@/lib/utils/format";
+import { useResetOnOpen } from "@/lib/hooks/useResetOnOpen";
 
 type Tab = "meals" | "recipes" | "foods";
 
@@ -26,12 +27,15 @@ function MealEditor({ open, onClose, meal }: { open: boolean; onClose: () => voi
   const [name, setName] = useState("");
   const [slot, setSlot] = useState<MealSlot>("breakfast");
   const [items, setItems] = useState<Ingredient[]>([]);
-  useEffect(() => {
-    if (!open) return;
-    setName(meal?.name ?? "");
-    setSlot(meal?.defaultSlot ?? "breakfast");
-    setItems(meal?.items ?? []);
-  }, [open, meal]);
+  useResetOnOpen(
+    open,
+    () => {
+      setName(meal?.name ?? "");
+      setSlot(meal?.defaultSlot ?? "breakfast");
+      setItems(meal?.items ?? []);
+    },
+    meal?.id,
+  );
   const save = async () => {
     if (!name.trim() || !items.length) {
       toast({ tone: "error", title: "Donne un nom et au moins un aliment" });
@@ -59,13 +63,16 @@ function RecipeEditor({ open, onClose, recipe }: { open: boolean; onClose: () =>
   const [servings, setServings] = useState<number | undefined>(2);
   const [items, setItems] = useState<Ingredient[]>([]);
   const [notes, setNotes] = useState("");
-  useEffect(() => {
-    if (!open) return;
-    setName(recipe?.name ?? "");
-    setServings(recipe?.servings ?? 2);
-    setItems(recipe?.items ?? []);
-    setNotes(recipe?.notes ?? "");
-  }, [open, recipe]);
+  useResetOnOpen(
+    open,
+    () => {
+      setName(recipe?.name ?? "");
+      setServings(recipe?.servings ?? 2);
+      setItems(recipe?.items ?? []);
+      setNotes(recipe?.notes ?? "");
+    },
+    recipe?.id,
+  );
   const save = async () => {
     if (!name.trim() || !items.length || !servings) {
       toast({ tone: "error", title: "Nom, portions et ingrédients requis" });

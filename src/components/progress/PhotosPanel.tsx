@@ -1,7 +1,7 @@
 "use client";
 
 import { Camera, Trash2 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { POSE_LABEL } from "@/components/quick/PhotoSheet";
 import { Button } from "@/components/ui/Button";
 import { Segmented } from "@/components/ui/Fields";
@@ -17,13 +17,12 @@ export function PhotosPanel() {
   const photos = usePhotos();
   const [pose, setPose] = useState<Pose>("front");
   const list = useMemo(() => (photos ?? []).filter((p) => p.pose === pose).sort((a, b) => a.date.localeCompare(b.date)), [photos, pose]);
-  const [beforeId, setBeforeId] = useState<string | null>(null);
-  const [afterId, setAfterId] = useState<string | null>(null);
-
-  useEffect(() => {
-    setBeforeId(list[0]?.id ?? null);
-    setAfterId(list.at(-1)?.id ?? null);
-  }, [list]);
+  const [picked, setPicked] = useState<{ before?: string; after?: string }>({});
+  // User choices win; otherwise compare the first and the latest photo of the pose.
+  const beforeId = picked.before && list.some((p) => p.id === picked.before) ? picked.before : (list[0]?.id ?? null);
+  const afterId = picked.after && list.some((p) => p.id === picked.after) ? picked.after : (list.at(-1)?.id ?? null);
+  const setBeforeId = (id: string) => setPicked((s) => ({ ...s, before: id }));
+  const setAfterId = (id: string) => setPicked((s) => ({ ...s, after: id }));
 
   if (photos === undefined) return <PageSkeleton />;
   const before = list.find((p) => p.id === beforeId);

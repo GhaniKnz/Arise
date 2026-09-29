@@ -4,7 +4,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { ArrowLeft, Camera, ImageUp, Plus, RotateCcw, Sparkles, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useMemo, useRef, useState } from "react";
 import { FoodPickerSheet } from "@/components/nutrition/FoodPickerSheet";
 import { foodToIngredient } from "@/components/nutrition/IngredientEditor";
 import { Button, IconButton } from "@/components/ui/Button";
@@ -19,6 +19,7 @@ import { logIngredients } from "@/lib/db/repos/nutrition";
 import { useToday } from "@/lib/db/hooks";
 import type { FoodCategory, Ingredient, MealSlot, Nova } from "@/lib/db/types";
 import { MEAL_SLOTS, mealForHour } from "@/lib/domain/nutrition";
+import { useBlobUrl } from "@/lib/hooks/useBlobUrl";
 import { cue } from "@/lib/system/feedback";
 import { toast } from "@/lib/system/store";
 import { fmtDec, fmtInt } from "@/lib/utils/format";
@@ -65,7 +66,7 @@ function ScanScreen() {
   const date = params.get("date") ?? today;
   const [slot, setSlot] = useState<MealSlot>((params.get("meal") as MealSlot) || mealForHour(new Date().getHours()));
   const [file, setFile] = useState<Blob | null>(null);
-  const [preview, setPreview] = useState<string | null>(null);
+  const preview = useBlobUrl(file);
   const [note, setNote] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -74,13 +75,6 @@ function ScanScreen() {
   const [picking, setPicking] = useState(false);
   const cameraRef = useRef<HTMLInputElement>(null);
   const galleryRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    if (!file) return;
-    const url = URL.createObjectURL(file);
-    setPreview(url);
-    return () => URL.revokeObjectURL(url);
-  }, [file]);
 
   const totals = useMemo(
     () =>
@@ -122,7 +116,6 @@ function ScanScreen() {
 
   const reset = () => {
     setFile(null);
-    setPreview(null);
     setAnalysis(null);
     setItems([]);
     setError(null);

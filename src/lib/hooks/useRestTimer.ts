@@ -44,13 +44,9 @@ async function notifyDone() {
 
 /** Rest countdown based on an absolute end time, so it survives backgrounding and reloads. */
 export function useRestTimer() {
-  const [state, setState] = useState<TimerState | null>(null);
+  const [state, setState] = useState<TimerState | null>(() => (typeof window === "undefined" ? null : load()));
   const [now, setNow] = useState(() => Date.now());
   const firedRef = useRef(false);
-
-  useEffect(() => {
-    setState(load());
-  }, []);
 
   useEffect(() => {
     if (!state) return;

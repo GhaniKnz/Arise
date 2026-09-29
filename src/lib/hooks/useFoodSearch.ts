@@ -21,22 +21,20 @@ export function useFoodSearch(query: string) {
   const local = useMemo(() => searchFoods<FoodItem>([...(custom ?? []), ...FOODS], query, 30), [custom, query]);
   const debounced = useDebounced(query.trim(), 450);
   const [remote, setRemote] = useState<{ q: string; foods: FoodItem[]; error?: string } | null>(null);
-  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (debounced.length < 3) return;
     let cancelled = false;
-    setLoading(true);
     apiFetch<{ foods: FoodItem[] }>(`/api/food/search?q=${encodeURIComponent(debounced)}`)
       .then((r) => !cancelled && setRemote({ q: debounced, foods: r.foods }))
-      .catch((e: Error) => !cancelled && setRemote({ q: debounced, foods: [], error: e.message }))
-      .finally(() => !cancelled && setLoading(false));
+      .catch((e: Error) => !cancelled && setRemote({ q: debounced, foods: [], error: e.message }));
     return () => {
       cancelled = true;
     };
   }, [debounced]);
+  const loading = debounced.length >= 3 && remote?.q !== debounced;
 
   const localIds = new Set(local.map((f) => f.barcode ?? f.id));
   const remoteFoods = remote && normalize(remote.q) === normalize(debounced) && debounced.length >= 3 ? remote.foods.filter((f) => !localIds.has(f.barcode ?? f.id)) : [];
-  return { local, remote: remoteFoods, loading: loading && debounced.length >= 3, remoteError: remote?.error };
+  return { local, remote: remoteFoods, loading, remoteError: remote?.error };
 }

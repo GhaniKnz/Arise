@@ -13,7 +13,7 @@ export const metadata: Metadata = {
   appleWebApp: { capable: true, title: "ARISE", statusBarStyle: "black-translucent" },
   formatDetection: { telephone: false },
   icons: {
-    icon: [{ url: "/icons/icon.svg", type: "image/svg+xml" }, { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" }],
+    icon: [{ url: "/icons/icon.svg", type: "image/svg+xml" }, { url: "/favicon.png", sizes: "32x32", type: "image/png" }],
     apple: [{ url: "/icons/apple-touch-icon.png", sizes: "180x180" }],
   },
 };
