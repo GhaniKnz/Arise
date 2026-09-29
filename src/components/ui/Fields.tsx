@@ -167,15 +167,15 @@ export function Segmented<T extends string>({ value, onChange, options, classNam
             aria-checked={active}
             onClick={() => onChange(o.value)}
             className={cn(
-              "relative flex flex-1 items-center justify-center gap-1.5 rounded-lg font-medium whitespace-nowrap transition-colors [&>svg]:size-4",
-              size === "sm" ? "h-8 px-2 text-xs" : "h-9 px-3 text-sm",
+              "relative flex min-w-0 flex-1 items-center justify-center gap-1.5 rounded-lg font-medium whitespace-nowrap transition-colors",
+              size === "sm" ? "h-8 px-1.5 text-xs" : "h-9 px-2 text-sm",
               active ? "text-ink" : "text-ink-3 hover:text-ink-2",
             )}
           >
             {active && <motion.span layoutId={`seg-${id}`} className="absolute inset-0 rounded-lg border border-arise/40 bg-arise/15" transition={{ type: "spring", stiffness: 500, damping: 38 }} />}
-            <span className="relative flex items-center gap-1.5">
-              {o.icon}
-              {o.label}
+            <span className="relative flex min-w-0 items-center gap-1.5">
+              {o.icon && <span className={cn("shrink-0 [&>svg]:size-4", o.label ? "hidden min-[400px]:inline-flex" : "inline-flex")}>{o.icon}</span>}
+              <span className="truncate">{o.label}</span>
             </span>
           </button>
         );

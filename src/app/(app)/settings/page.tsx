@@ -31,7 +31,7 @@ export default function SettingsPage() {
           </a>
         ))}
       </nav>
-      <div className="grid gap-4 lg:grid-cols-2 [&>section]:scroll-mt-20">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 [&>section]:scroll-mt-20">
         <ProfileSection />
         <TargetsSection />
         <PreferencesSection />

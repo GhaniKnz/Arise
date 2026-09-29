@@ -24,7 +24,7 @@ export function SyncSection() {
         <PanelHeader title="Compte & synchronisation" icon={<CloudOff />} subtitle="Mode local (aucun compte nécessaire)" />
         <p className="text-sm text-ink-2">Tes données sont enregistrées uniquement sur cet appareil. Pour synchroniser téléphone et ordinateur, connecte un projet Supabase gratuit :</p>
         <ol className="mt-2 list-decimal space-y-1 pl-5 text-sm text-ink-3">
-          <li>Crée un projet sur supabase.com et exécute <code className="text-ink-2">supabase/migrations/0001_init.sql</code>.</li>
+          <li>Crée un projet sur supabase.com et exécute <code className="break-all text-ink-2">supabase/migrations/0001_init.sql</code>.</li>
           <li>
             Ajoute <code className="text-ink-2">NEXT_PUBLIC_SUPABASE_URL</code> et <code className="text-ink-2">NEXT_PUBLIC_SUPABASE_ANON_KEY</code> aux variables d&apos;environnement.
           </li>
@@ -57,7 +57,7 @@ export function SyncSection() {
           <Button variant="secondary" block onClick={() => run(() => sb.auth.signInWithOAuth({ provider: "google", options: { redirectTo } }))} disabled={busy}>
             Continuer avec Google
           </Button>
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <Field label="E-mail">
               <TextInput type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} />
             </Field>

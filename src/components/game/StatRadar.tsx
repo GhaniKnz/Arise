@@ -1,10 +1,12 @@
 "use client";
 
 import { motion } from "motion/react";
+import { useId } from "react";
 import { STAT_ORDER, type StatKey } from "@/lib/domain/game";
 
 /** Hexagonal radar of the six RPG stats. */
 export function StatRadar({ stats, size = 260 }: { stats: Record<StatKey, number>; size?: number }) {
+  const fillId = `radar-${useId().replace(/:/g, "")}`;
   const c = size / 2;
   const r = size / 2 - 34;
   const max = Math.max(30, ...STAT_ORDER.map((k) => stats[k])) * 1.1;
@@ -24,7 +26,7 @@ export function StatRadar({ stats, size = 260 }: { stats: Record<StatKey, number
   return (
     <svg viewBox={`0 0 ${size} ${size}`} className="mx-auto w-full max-w-72" role="img" aria-label={`Statistiques : ${STAT_ORDER.map((k) => `${k} ${stats[k]}`).join(", ")}`}>
       <defs>
-        <radialGradient id="radar-fill" cx="50%" cy="50%" r="50%">
+        <radialGradient id={fillId} cx="50%" cy="50%" r="50%">
           <stop offset="0%" stopColor="#8b5cf6" stopOpacity="0.55" />
           <stop offset="100%" stopColor="#4da3ff" stopOpacity="0.25" />
         </radialGradient>
@@ -38,7 +40,7 @@ export function StatRadar({ stats, size = 260 }: { stats: Record<StatKey, number
       })}
       <motion.polygon
         points={shape}
-        fill="url(#radar-fill)"
+        fill={`url(#${fillId})`}
         stroke="#7cc0ff"
         strokeWidth="2"
         strokeLinejoin="round"

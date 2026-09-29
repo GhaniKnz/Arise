@@ -49,7 +49,7 @@ export function ProfileSection() {
   return (
     <Panel id="profile">
       <PanelHeader title="Profil & objectif" icon={<UserRound />} />
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <Field label="Prénom">
           <TextInput value={d.name} onChange={(e) => set("name", e.target.value)} maxLength={30} />
         </Field>

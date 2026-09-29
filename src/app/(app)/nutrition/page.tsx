@@ -66,7 +66,7 @@ function NutritionJournal() {
     <>
       <PageHeader kicker="Journal alimentaire" title="Nutrition" action={<DayNav date={date} onChange={setDate} />} className="flex-wrap" />
 
-      <div className="grid gap-4 lg:grid-cols-[1fr_22rem] lg:items-start">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_22rem] lg:items-start">
         <div className="space-y-4">
           <Panel className="flex flex-col items-center gap-5 sm:flex-row">
             <Ring value={totals.kcal} max={t.kcal} size={150} stroke={12} label={`${fmtInt(totals.kcal)} kilocalories sur ${fmtInt(t.kcal)}`}>

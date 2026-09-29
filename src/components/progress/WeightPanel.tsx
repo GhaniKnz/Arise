@@ -104,7 +104,7 @@ export function WeightPanel() {
         <p className="mt-2 text-[11px] text-ink-3">Les points gris sont les pesées brutes : l&apos;eau et le glycogène les font varier de ±1 kg. La ligne bleue est la tendance réelle.</p>
       </Panel>
 
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <Panel glow>
           <PanelHeader title="Cut projection" icon={<Target />} subtitle={p.basis === "observed" ? "Basée sur ta tendance réelle" : "Basée sur le rythme prévu (pas encore assez de données)"} />
           <dl className="grid grid-cols-2 gap-3 text-sm">

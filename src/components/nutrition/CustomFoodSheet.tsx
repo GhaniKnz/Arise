@@ -117,7 +117,7 @@ export function CustomFoodSheet({
       }
     >
       <div className="space-y-4">
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <Field label="Nom">
             <TextInput data-autofocus value={d.name} onChange={(e) => set("name", e.target.value)} placeholder="Ex. Galettes de sarrasin" />
           </Field>
@@ -148,7 +148,7 @@ export function CustomFoodSheet({
           {n("salt", "Sel", "g")}
         </div>
         {mismatch && <Notice tone="warn">Les macros donnent ~{fmtInt(atwater)} kcal : vérifie les valeurs saisies.</Notice>}
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <Field label="Portion habituelle">
             <NumberInput value={d.defaultGrams} onChange={(v) => set("defaultGrams", v)} unit={d.unit} min={1} max={2000} decimals={0} step={10} />
           </Field>

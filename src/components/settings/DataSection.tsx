@@ -119,7 +119,7 @@ export function DataSection() {
           </div>
         </div>
         <Notice>Sans synchronisation cloud, pense à exporter régulièrement : effacer les données du navigateur supprime aussi ARISE.</Notice>
-        <div className="grid gap-2 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
           <Button variant="secondary" onClick={() => setDanger("demo")}>
             <Sparkles /> Données de démo
           </Button>

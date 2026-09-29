@@ -67,7 +67,7 @@ export default function ExerciseDetailPage() {
       </div>
       <PageHeader kicker={MUSCLE_LABEL[ex.primary]} title={ex.name} subtitle={ex.nameEn} />
 
-      <div className="grid gap-4 lg:grid-cols-[20rem_1fr]">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[20rem_1fr]">
         <div className="space-y-4">
           <Panel className="flex flex-col items-center">
             <MuscleIcon primary={ex.primary} secondary={ex.secondary} view="both" className="h-48 w-auto" title={`Muscles ciblés : ${MUSCLE_LABEL[ex.primary]}`} />

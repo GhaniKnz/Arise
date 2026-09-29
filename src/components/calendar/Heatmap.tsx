@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import { useGame } from "@/components/providers/GameProvider";
 import { addDays, formatShort, weekStart, type DayKey } from "@/lib/utils/date";
 import { cn } from "@/lib/utils/cn";
@@ -26,11 +27,16 @@ export const HEAT_LEGEND: [string, string][] = [
 /** GitHub-style grid: columns are weeks (Mon→Sun), intensity = daily score. */
 export function Heatmap({ weeks = 26, onSelect }: { weeks?: number; onSelect?: (d: DayKey) => void }) {
   const { ledger, today } = useGame();
+  const scroller = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = scroller.current;
+    if (el) el.scrollLeft = el.scrollWidth;
+  }, [weeks]);
   const start = addDays(weekStart(today), -(weeks - 1) * 7);
   const cols = Array.from({ length: weeks }, (_, w) => Array.from({ length: 7 }, (_, d) => addDays(start, w * 7 + d)));
   return (
     <div>
-      <div className="-mx-1 overflow-x-auto px-1 pb-2 no-scrollbar">
+      <div ref={scroller} className="-mx-1 overflow-x-auto px-1 pb-2 no-scrollbar">
         <div className="flex gap-[3px]" role="grid" aria-label={`Adhérence des ${weeks} dernières semaines`}>
           {cols.map((col, i) => (
             <div key={i} className="flex flex-col gap-[3px]" role="row">

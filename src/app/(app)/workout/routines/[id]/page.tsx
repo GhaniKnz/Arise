@@ -77,7 +77,7 @@ export default function RoutineEditorPage() {
       <PageHeader kicker="Programme" title={isNew ? "Nouveau programme" : "Modifier le programme"} />
 
       <Panel className="space-y-4">
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <Field label="Nom">
             <TextInput value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex. Push A" />
           </Field>

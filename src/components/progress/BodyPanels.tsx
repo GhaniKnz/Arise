@@ -131,10 +131,10 @@ export function WeighInsList() {
       <ul className="divide-y divide-line/60">
         {list.map((m) => (
           <li key={m.id} className="flex items-center gap-3 py-2 text-sm">
-            <button type="button" onClick={() => openSheet("weight", m.date)} className="flex min-w-0 flex-1 items-center gap-3 text-left">
-              <span className="inline-block w-28 shrink-0 text-ink-3 first-letter:uppercase">{formatDay(m.date)}</span>
+            <button type="button" onClick={() => openSheet("weight", m.date)} className="flex min-w-0 flex-1 items-center gap-3 overflow-hidden text-left">
+              <span className="inline-block w-24 shrink-0 truncate text-ink-3 first-letter:uppercase sm:w-28">{formatDay(m.date)}</span>
               <span className="font-display font-semibold whitespace-nowrap text-ink">{fmtDec(m.weightKg)} kg</span>
-              {m.bodyFatPct != null && <span className="text-xs whitespace-nowrap text-ink-3">{fmtDec(m.bodyFatPct)} % MG</span>}
+              {m.bodyFatPct != null && <span className="hidden text-xs whitespace-nowrap text-ink-3 min-[380px]:inline">{fmtDec(m.bodyFatPct)} % MG</span>}
               {m.waistCm != null && <span className="hidden text-xs whitespace-nowrap text-ink-3 sm:inline">taille {fmtDec(m.waistCm)}</span>}
             </button>
             <IconButton label="Supprimer la pesée" size="sm" onClick={() => deleteMetrics(m.date)}>

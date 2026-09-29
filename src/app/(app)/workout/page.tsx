@@ -70,7 +70,7 @@ export default function WorkoutPage() {
         }
       />
 
-      <div className="grid gap-4 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <Panel className="lg:col-span-2">
           <PanelHeader title="Cette semaine" icon={<Dumbbell />} />
           <WeekStrip />
@@ -116,7 +116,7 @@ export default function WorkoutPage() {
           </LinkButton>
         </div>
         {routines.length ? (
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {routines.map((r) => {
               const meta = ROUTINE_TYPE_META[r.type];
               return (
@@ -154,7 +154,7 @@ export default function WorkoutPage() {
         )}
       </section>
 
-      <div className="mt-6 grid gap-4 lg:grid-cols-2">
+      <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
         <Panel>
           <PanelHeader title="Planning hebdomadaire" subtitle="Définit la quête « Séance » du jour" />
           <ul className="space-y-2">
@@ -225,7 +225,7 @@ export default function WorkoutPage() {
         </Panel>
       </div>
 
-      <div className="mt-4 grid gap-4 lg:grid-cols-2">
+      <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
         <Panel>
           <PanelHeader
             title="Cardio"

@@ -37,7 +37,7 @@ export default function StatusPage() {
     <>
       <PageHeader kicker="Système" title="Statut" subtitle="Ta fiche de chasseur : chaque habitude fait progresser une statistique." />
 
-      <div className="grid gap-4 lg:grid-cols-[1.1fr_1fr]">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1.1fr_1fr]">
         <Panel glow hud className="relative overflow-hidden">
           <div className="pointer-events-none absolute -top-20 -right-20 size-72 rounded-full bg-[radial-gradient(circle,rgb(139_92_246/0.3),transparent_65%)]" aria-hidden />
           <p className="label text-arise">[ Fenêtre de statut ]</p>
@@ -111,10 +111,10 @@ export default function StatusPage() {
         </ol>
       </Panel>
 
-      <div className="mt-4 grid gap-4 lg:grid-cols-[1.4fr_1fr]">
+      <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-[1.4fr_1fr]">
         <Panel>
           <PanelHeader title="Succès" icon={<Medal />} action={<span className="text-xs text-ink-3">{unlocked}/{achs.length}</span>} />
-          <ul className="grid gap-2 sm:grid-cols-2">
+          <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2">
             {achs.map((a) => (
               <li key={a.id} className={cn("flex items-center gap-3 rounded-xl border p-2.5", a.done ? "border-arise/40 bg-arise/[0.07]" : "border-line bg-white/[0.02]")}>
                 <span className={cn("flex size-10 shrink-0 items-center justify-center rounded-xl text-xl", a.done ? "bg-arise/15" : "bg-white/[0.04] grayscale")} aria-hidden>

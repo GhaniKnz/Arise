@@ -25,7 +25,7 @@ export default function KnowledgePage() {
       <PageHeader kicker="Knowledge" title="Science de la transformation" subtitle="Conseils tirés de méta-analyses, consensus et positions officielles — avec leurs sources." />
       <Panel className="mb-4">
         <p className="label mb-2">Niveaux de preuve</p>
-        <ul className="grid gap-2 sm:grid-cols-3">
+        <ul className="grid grid-cols-1 gap-2 sm:grid-cols-3">
           {(Object.keys(EVIDENCE_META) as (keyof typeof EVIDENCE_META)[]).map((k) => (
             <li key={k} className="flex items-start gap-2 text-xs text-ink-2">
               <Badge color={EVIDENCE_COLOR[k]}>{EVIDENCE_META[k].label}</Badge>
@@ -48,7 +48,7 @@ export default function KnowledgePage() {
           </Chip>
         ))}
       </div>
-      <ul className="grid gap-3 sm:grid-cols-2">
+      <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         {list.map((a) => {
           const solid = a.claims.filter((c) => c.evidence === "solide").length;
           return (

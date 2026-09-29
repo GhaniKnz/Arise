@@ -1,4 +1,5 @@
 import type { Muscle } from "@/lib/db/types";
+import { useId } from "react";
 import { cn } from "@/lib/utils/cn";
 
 type Region = { muscle: Muscle | null; points: string };
@@ -85,7 +86,7 @@ interface Props {
 export function MuscleIcon({ primary, secondary = [], view = "auto", className, title }: Props) {
   const prim = Array.isArray(primary) ? primary : [primary];
   const resolved = view === "auto" ? viewFor(prim[0]) : view;
-  const id = `${prim.join("-")}-${resolved}`;
+  const id = useId().replace(/:/g, "");
   const width = resolved === "both" ? 124 : 60;
   return (
     <svg viewBox={`0 0 ${width} 102`} className={cn("shrink-0", className)} role={title ? "img" : undefined} aria-label={title} aria-hidden={title ? undefined : true}>

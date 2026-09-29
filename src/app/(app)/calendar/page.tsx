@@ -49,7 +49,7 @@ export default function CalendarPage() {
     <>
       <PageHeader kicker="Système" title="Calendrier" subtitle="Tes jours de salle, ton adhérence et tes séries de jours" />
 
-      <div className="grid gap-4 lg:grid-cols-[1fr_20rem]">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_20rem]">
         <Panel>
           <div className="mb-4 flex items-center justify-between">
             <IconButton label="Mois précédent" onClick={() => setMonth(addMonths(month, -1))}>

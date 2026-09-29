@@ -19,7 +19,7 @@ import { addDays, formatShort, weekStart, weekdayIndex } from "@/lib/utils/date"
 import { cn } from "@/lib/utils/cn";
 import { fmtDec, fmtInt, fmtSigned, fmtSleep } from "@/lib/utils/format";
 
-function Row({ label, cur, prev, format, betterUp }: { label: string; cur: number | null; prev: number | null | undefined; format: (v: number) => string; betterUp?: boolean }) {
+function Row({ label, cur, prev, format, betterUp, unit = "" }: { label: string; cur: number | null; prev: number | null | undefined; format: (v: number) => string; betterUp?: boolean; unit?: string }) {
   const delta = cur != null && prev != null ? cur - prev : null;
   const good = delta == null || betterUp == null ? null : betterUp ? delta >= 0 : delta <= 0;
   return (
@@ -27,7 +27,7 @@ function Row({ label, cur, prev, format, betterUp }: { label: string; cur: numbe
       <span className="text-sm text-ink-2">{label}</span>
       <span className="flex items-baseline gap-2">
         <span className="font-display text-lg font-semibold text-ink">{cur == null ? "—" : format(cur)}</span>
-        {delta != null && Math.abs(delta) > 0.001 && <span className={cn("text-xs", good == null ? "text-ink-3" : good ? "text-good" : "text-warn")}>{fmtSigned(delta, Math.abs(delta) < 10 ? 1 : 0)}</span>}
+        {delta != null && Math.abs(delta) > 0.001 && <span className={cn("text-xs", good == null ? "text-ink-3" : good ? "text-good" : "text-warn")}>{fmtSigned(delta, Math.abs(delta) < 10 ? 1 : 0, unit)}</span>}
       </span>
     </div>
   );
@@ -113,11 +113,11 @@ export default function ReportPage() {
             {cur.sessions} / {cur.plannedSessions}
           </span>
         </div>
-        <Row label="Sommeil" cur={cur.avgSleepMin} prev={prev.avgSleepMin} format={(v) => fmtSleep(v)} betterUp />
+        <Row label="Sommeil" cur={cur.avgSleepMin} prev={prev.avgSleepMin} format={(v) => fmtSleep(v)} betterUp unit="min" />
         <Row label="Score moyen" cur={cur.avgScore} prev={prev.avgScore} format={(v) => `${fmtInt(v)}/100`} betterUp />
       </Panel>
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Panel>
           <PanelHeader title="Analyse" />
           <ul className="space-y-2.5">

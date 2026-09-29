@@ -85,7 +85,7 @@ function RecipeEditor({ open, onClose, recipe }: { open: boolean; onClose: () =>
   return (
     <Sheet open={open} onClose={onClose} size="lg" title={recipe ? "Modifier la recette" : "Nouvelle recette"} description="Les macros par portion se recalculent automatiquement" footer={<Button block size="lg" onClick={save}>Enregistrer</Button>}>
       <div className="space-y-4">
-        <div className="grid gap-3 sm:grid-cols-[1fr_12rem]">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_12rem]">
           <Field label="Nom">
             <TextInput data-autofocus value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex. Butter Chicken Fitness" />
           </Field>
@@ -172,7 +172,7 @@ function Library() {
       )}
 
       {tab === "recipes" && (
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {recipes?.length ? (
             recipes.map((r) => {
               const t = ingredientsTotals(r.items);

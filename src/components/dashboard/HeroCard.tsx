@@ -28,9 +28,9 @@ export function HeroCard() {
             {greeting()} <span className="text-gradient">{profile?.name}</span>
           </motion.h1>
           <p className="mt-0.5 text-sm leading-snug text-ink-2">
-            <span className="font-display font-semibold text-ink">LEVEL {lvl.level}</span>
+            <span className="font-display font-semibold whitespace-nowrap text-ink">LEVEL {lvl.level}</span>
             <span className="text-ink-3"> · {titleFor(lvl.level)} · </span>
-            <span style={{ color: RANK_META[rank].color }}>{RANK_META[rank].label}</span>
+            <span className="whitespace-nowrap" style={{ color: RANK_META[rank].color }}>{RANK_META[rank].label}</span>
           </p>
         </div>
         <div className="hidden shrink-0 sm:block">

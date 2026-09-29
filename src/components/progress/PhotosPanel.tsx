@@ -46,7 +46,7 @@ export function PhotosPanel() {
       {list.length === 0 ? (
         <EmptyState icon={<Camera />} title={`Aucune photo « ${POSE_LABEL[pose]} »`} description="Une photo toutes les 2–4 semaines, même lumière et même pose : c'est le meilleur juge de ta sèche." action={<Button size="sm" onClick={() => openSheet("photo")}>Prendre la première</Button>} />
       ) : (
-        <div className="grid gap-4 lg:grid-cols-[1fr_18rem]">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_18rem]">
           <Panel>
             <PanelHeader title="Avant / Après" />
             {before && after && before.id !== after.id ? (
