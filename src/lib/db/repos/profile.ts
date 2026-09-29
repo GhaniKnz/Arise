@@ -33,6 +33,8 @@ export async function refreshAutoTargets(currentWeightKg: number, adaptiveTdee?:
     adaptiveTdee,
   });
   const { maintenance: _m, dailyDelta: _d, ...targets } = t;
+  // Avoid daily churn: only follow meaningful changes.
+  if (Math.abs(targets.kcal - p.targets.kcal) < 50 && Math.abs(targets.protein - p.targets.protein) < 5) return;
   // Keep user-chosen lifestyle targets.
   await patch(db.profile, "me", { targets: { ...targets, steps: p.targets.steps, sleepMin: p.targets.sleepMin, waterMl: p.targets.waterMl } });
 }
