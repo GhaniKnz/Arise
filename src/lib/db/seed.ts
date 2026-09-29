@@ -6,6 +6,7 @@ import type {
   CardioSession,
   DailyLog,
   Experience,
+  Favorite,
   FoodEntry,
   GoalType,
   Ingredient,
@@ -53,15 +54,15 @@ export function previewTargets(a: OnboardingAnswers) {
 }
 
 /** Creates the profile, default routines and weekly schedule. */
-export async function createProfile(a: OnboardingAnswers, opts: { startDate?: DayKey; schedule?: (string | null)[] } = {}) {
+export async function createProfile(a: OnboardingAnswers, opts: { startDate?: DayKey; split?: { templates: string[]; schedule: (string | null)[] } } = {}) {
   const t = previewTargets(a);
-  const split = splitFor(a.sessionsPerWeek, a.experience);
+  const split = opts.split ?? splitFor(a.sessionsPerWeek, a.experience);
   const routines = split.templates.map((key) => {
     const tpl = TEMPLATES[key];
     return stamp<Routine>({ name: tpl.name, type: tpl.type, exercises: tpl.exercises.map((e) => ({ ...e })) });
   });
   const keyToId = new Map(split.templates.map((k, i) => [k, routines[i].id]));
-  const scheduleKeys = opts.schedule ?? split.schedule;
+  const scheduleKeys = split.schedule;
   const schedule = scheduleKeys.map((k) => (k ? (keyToId.get(k) ?? null) : null));
   const startDate = opts.startDate ?? todayKey();
   const { maintenance: _m, dailyDelta: _d, ...targets } = t;
@@ -247,7 +248,7 @@ export async function seedDemo(days = 45) {
 
   const { routines, profile } = await createProfile(
     { name: "Ghani", goal: "cut", sex: "male", age: 28, heightCm: 178, weightKg: 80, targetWeightKg: 73, activity: "moderate", sessionsPerWeek: 4, experience: "intermediate" },
-    { startDate: start, schedule: ["push", "pull", null, "legs", "upper", null, null] },
+    { startDate: start, split: { templates: ["push", "pull", "legs", "upper"], schedule: ["push", "pull", null, "legs", "upper", null, null] } },
   );
   // createProfile adds a start weigh-in; demo metrics below replace it.
   await db.bodyMetrics.clear();
@@ -341,10 +342,10 @@ export async function seedDemo(days = 45) {
       routine.exercises.forEach((ex) => {
         const [baseW, baseR] = BASE_LOADS[ex.exerciseId] ?? [20, 10];
         const inc = baseW >= 60 ? 2.5 : baseW > 0 ? 1 : 0;
-        const weight = baseW > 0 ? baseW + inc * Math.floor(week * 0.8) : 0;
+        const weight = baseW > 0 ? baseW + inc * Math.floor(week / 2) : 0;
         for (let s = 0; s < ex.sets; s++) {
           t += (ex.restSec + 45) * 1000;
-          const reps = Math.max(ex.repsMin, Math.min(ex.repsMax + 1, baseR + (week % 2) + (baseW === 0 ? Math.floor(week / 2) : 0) - s));
+          const reps = Math.max(ex.repsMin, Math.min(ex.repsMax + 1, baseR + (week % 2 === 1 ? 1 : 0) + (baseW === 0 ? Math.floor(week / 3) : 0) - s));
           sets.push(
             stamp<WorkoutSet>({
               sessionId: session.id,
@@ -409,7 +410,7 @@ export async function seedDemo(days = 45) {
     await db.meals.bulkAdd(meals);
     await db.recipes.bulkAdd(recipes);
     if (photos.length) await db.photos.bulkAdd(photos);
-    await db.favorites.bulkAdd(["b:chicken_breast_cooked", "b:skyr", "b:egg", "b:rice_white_cooked", "b:whey"].map((foodId) => stamp({ foodId })));
+    await db.favorites.bulkAdd(["b:chicken_breast_cooked", "b:skyr", "b:egg", "b:rice_white_cooked", "b:whey"].map((foodId) => stamp<Favorite>({ foodId })));
     await db.kv.put({ key: "demo", value: true });
   });
 }

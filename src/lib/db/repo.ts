@@ -1,4 +1,4 @@
-import type { Table } from "dexie";
+import type { EntityTable } from "dexie";
 import { db, type SyncedTable } from "./index";
 import type { BaseRow } from "./types";
 import { nowIso, uid } from "@/lib/utils/id";
@@ -10,15 +10,15 @@ export function stamp<T extends BaseRow>(data: NewRow<T>): T {
   return { ...data, id: data.id ?? uid(), createdAt: now, updatedAt: now } as T;
 }
 
-export async function insert<T extends BaseRow>(table: Table<T, string>, data: NewRow<T>): Promise<T> {
+export async function insert<T extends BaseRow>(table: EntityTable<T, "id">, data: NewRow<T>): Promise<T> {
   const row = stamp<T>(data);
-  await table.add(row);
+  await table.add(row as never);
   return row;
 }
 
-export async function patch<T extends BaseRow>(table: Table<T, string>, id: string, changes: Partial<T>): Promise<void> {
+export async function patch<T extends BaseRow>(table: EntityTable<T, "id">, id: string, changes: Partial<Omit<T, "id" | "createdAt">>): Promise<void> {
   // Dexie's UpdateSpec typing is stricter than needed for flat partial updates.
-  await table.update(id, { ...changes, updatedAt: nowIso() } as never);
+  await table.update(id as never, { ...changes, updatedAt: nowIso() } as never);
 }
 
 /** Deletes rows and records tombstones so the deletion can be synced. */

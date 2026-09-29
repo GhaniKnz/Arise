@@ -303,9 +303,9 @@ export function buildLedger({ days, targets, goal, quests, prsByDate, today }: L
     if (allDone) push({ date: day.date, amount: ALL_QUESTS_BONUS, stat: "DISC", label: "Daily Quest complète" });
 
     for (let i = 0; i < Math.min(day.sessionsDone, 2); i++) push({ date: day.date, amount: 100, stat: "STR", label: "Séance terminée" });
-    const prs = Math.min(prsByDate.get(day.date) ?? 0, 5);
+    const prs = Math.min(prsByDate.get(day.date) ?? 0, 3);
     prCount += prsByDate.get(day.date) ?? 0;
-    for (let i = 0; i < prs; i++) push({ date: day.date, amount: 50, stat: "STR", label: "Record personnel" });
+    for (let i = 0; i < prs; i++) push({ date: day.date, amount: 40, stat: "STR", label: "Record personnel" });
     if (day.cardioMin >= 15) push({ date: day.date, amount: 60, stat: "END", label: "Cardio" });
     if (day.weightKg != null) push({ date: day.date, amount: 20, stat: "DISC", label: "Pesée" });
 
