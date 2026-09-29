@@ -342,10 +342,10 @@ export async function seedDemo(days = 45) {
       routine.exercises.forEach((ex) => {
         const [baseW, baseR] = BASE_LOADS[ex.exerciseId] ?? [20, 10];
         const inc = baseW >= 60 ? 2.5 : baseW > 0 ? 1 : 0;
-        const weight = baseW > 0 ? baseW + inc * Math.floor(week / 2) : 0;
+        const weight = baseW > 0 ? baseW + inc * Math.floor(week / 4) : 0;
         for (let s = 0; s < ex.sets; s++) {
           t += (ex.restSec + 45) * 1000;
-          const reps = Math.max(ex.repsMin, Math.min(ex.repsMax + 1, baseR + (week % 2 === 1 ? 1 : 0) + (baseW === 0 ? Math.floor(week / 3) : 0) - s));
+          const reps = Math.max(ex.repsMin, Math.min(ex.repsMax + 1, baseR + (week % 4 === 2 ? 1 : 0) + (baseW === 0 ? Math.floor(week / 4) : 0) - s - (rand() < 0.2 ? 1 : 0)));
           sets.push(
             stamp<WorkoutSet>({
               sessionId: session.id,

@@ -23,14 +23,18 @@ export function MacroBars({ totals, targets, compact, className }: { totals: Rec
         const left = t - v;
         return (
           <li key={m.key}>
-            <div className="mb-1.5 flex items-baseline justify-between gap-2 text-sm">
-              <span className="flex items-center gap-1.5 text-ink-2">
+            <div className={cn("mb-1.5 flex items-baseline justify-between gap-2 whitespace-nowrap", compact ? "text-xs" : "text-sm")}>
+              <span className="flex min-w-0 items-center gap-1.5 truncate text-ink-2">
                 <span className="size-2 rounded-full" style={{ background: m.color }} aria-hidden />
                 {m.label}
               </span>
               <span className="tabular text-ink">
                 <strong className="font-semibold">{fmtInt(v)}</strong>
-                <span className="text-ink-3"> / {fmtInt(t)} g</span>
+                <span className="text-ink-3">
+                  {" "}
+                  / {fmtInt(t)}
+                  {compact ? "" : " g"}
+                </span>
               </span>
             </div>
             <ProgressBar value={v} max={t} color={m.color} height={7} label={`${m.label} ${fmtInt(v)} sur ${fmtInt(t)} grammes`} overflow={m.key === "fat" || m.key === "carbs"} />

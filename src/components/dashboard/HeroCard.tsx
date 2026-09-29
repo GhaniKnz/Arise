@@ -23,7 +23,7 @@ export function HeroCard() {
           <RankBadge level={lvl.level} size="lg" />
         </Link>
         <div className="min-w-0 flex-1">
-          <p className="text-xs text-ink-3 capitalize">{formatDayLong(today)}</p>
+          <p className="text-xs text-ink-3 first-letter:uppercase">{formatDayLong(today)}</p>
           <motion.h1 initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="truncate font-display text-2xl font-bold text-ink sm:text-3xl">
             {greeting()} <span className="text-gradient">{profile?.name}</span>
           </motion.h1>
