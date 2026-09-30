@@ -1,13 +1,16 @@
 import { db } from "../index";
 import { insert, patch, remove, stamp } from "../repo";
-import type { EntrySource, FoodEntry, FoodItem, FoodRow, Ingredient, MealSlot, Nutrients, Recipe, SavedMeal } from "../types";
-import { per100OfIngredients, scaleNutrients } from "@/lib/domain/nutrition";
+import type { DishSource, EntryNutrients, EntrySource, FoodEntry, FoodItem, FoodRow, Ingredient, MealSlot, Nutrients, Recipe, SavedMeal } from "../types";
+import { dishNova, ingredientsTotals, per100OfIngredients, scaleNutrients } from "@/lib/domain/nutrition";
 import type { DayKey } from "@/lib/utils/date";
 
 const r1 = (n: number) => Math.round(n * 10) / 10;
 
 function snapshot(per100: Nutrients, grams: number) {
-  const n = scaleNutrients(per100, grams);
+  return rounded(scaleNutrients(per100, grams));
+}
+
+function rounded(n: EntryNutrients): EntryNutrients {
   return {
     kcal: Math.round(n.kcal),
     protein: r1(n.protein),
@@ -77,6 +80,43 @@ export async function logRecipe(opts: { date: DayKey; meal: MealSlot; recipe: Re
     category: "prepared",
     ...snapshot(per100, grams),
   });
+}
+
+/* ─────────────── Composed dishes ─────────────── */
+
+export interface DishInput {
+  name: string;
+  items: Ingredient[];
+  sources?: DishSource[];
+  dishId?: string;
+}
+
+/** Photo thumbnails (data URLs) stay on the saved dish; journal entries only keep product image URLs. */
+const lightSources = (sources?: DishSource[]) => sources?.map((s) => (s.thumb?.startsWith("data:") ? { ...s, thumb: undefined } : s));
+
+function dishFields({ name, items, sources, dishId }: DishInput) {
+  const t = ingredientsTotals(items);
+  const per100 = per100OfIngredients(items);
+  return {
+    name,
+    grams: Math.round(t.grams),
+    per100,
+    nova: dishNova(items),
+    category: "prepared" as const,
+    items,
+    sources: lightSources(sources),
+    dishId,
+    ...rounded(t),
+  };
+}
+
+/** Logs a composed dish as one journal entry; its ingredients stay attached to re-edit it later. */
+export async function logDish(opts: DishInput & { date: DayKey; meal: MealSlot }) {
+  return insert<FoodEntry>(db.foodEntries, { date: opts.date, meal: opts.meal, source: "dish", ...dishFields(opts) });
+}
+
+export async function updateDishEntry(id: string, opts: DishInput & { meal: MealSlot }) {
+  await patch(db.foodEntries, id, { meal: opts.meal, ...dishFields(opts) });
 }
 
 export async function quickAdd(opts: { date: DayKey; meal: MealSlot; name: string; kcal: number; protein?: number; carbs?: number; fat?: number }) {
@@ -150,9 +190,9 @@ export async function toggleFavorite(foodId: string, food?: FoodItem) {
 
 /* ─────────────── Meals & recipes ─────────────── */
 
-export async function saveMeal(meal: { id?: string; name: string; items: Ingredient[]; defaultSlot?: MealSlot }) {
+export async function saveMeal(meal: { id?: string; name: string; items: Ingredient[]; defaultSlot?: MealSlot; sources?: DishSource[] }) {
   if (meal.id) {
-    await patch(db.meals, meal.id, { name: meal.name, items: meal.items, defaultSlot: meal.defaultSlot });
+    await patch(db.meals, meal.id, { name: meal.name, items: meal.items, defaultSlot: meal.defaultSlot, sources: meal.sources });
     return meal.id;
   }
   return (await insert<SavedMeal>(db.meals, meal)).id;
@@ -171,7 +211,9 @@ export async function saveRecipe(recipe: { id?: string; name: string; servings: 
 export const deleteRecipe = (id: string) => remove("recipes", [id]);
 
 export function entriesToIngredients(entries: FoodEntry[]): Ingredient[] {
-  return entries
-    .filter((e) => e.per100 && e.grams > 0)
-    .map((e) => ({ foodId: e.foodId, name: e.name, grams: e.grams, per100: e.per100!, nova: e.nova, category: e.category }));
+  return entries.flatMap((e): Ingredient[] => {
+    // A composed dish contributes its own ingredients.
+    if (e.items?.length) return e.items.map(({ sourceId: _s, ...it }) => it);
+    return e.per100 && e.grams > 0 ? [{ foodId: e.foodId, name: e.name, grams: e.grams, per100: e.per100, nova: e.nova, category: e.category }] : [];
+  });
 }

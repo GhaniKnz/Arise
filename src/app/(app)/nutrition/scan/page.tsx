@@ -1,24 +1,24 @@
 "use client";
 
 import { AnimatePresence, motion } from "motion/react";
-import { ArrowLeft, Camera, ImageUp, Plus, RotateCcw, Sparkles, X } from "lucide-react";
+import { ArrowLeft, Camera, ImageUp, Plus, RotateCcw, Sparkles, UtensilsCrossed, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useMemo, useRef, useState } from "react";
 import { FoodPickerSheet } from "@/components/nutrition/FoodPickerSheet";
-import { foodToIngredient } from "@/components/nutrition/IngredientEditor";
 import { Button, IconButton } from "@/components/ui/Button";
 import { Field, NumberInput, Segmented, TextInput } from "@/components/ui/Fields";
 import { Badge, ErrorBox, Notice, PageSkeleton } from "@/components/ui/Feedback";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Panel } from "@/components/ui/Panel";
-import { apiFetch, ApiError } from "@/lib/api";
+import { ApiError } from "@/lib/api";
 import type { MealAnalysis } from "@/lib/ai/schemas";
-import { resizeImage } from "@/lib/db/repos/body";
+import { addToNewDraft, photoPart } from "@/lib/db/repos/dishDraft";
 import { logIngredients } from "@/lib/db/repos/nutrition";
 import { useToday } from "@/lib/db/hooks";
-import type { FoodCategory, Ingredient, MealSlot, Nova } from "@/lib/db/types";
-import { MEAL_SLOTS, mealForHour } from "@/lib/domain/nutrition";
+import type { Ingredient, MealSlot } from "@/lib/db/types";
+import { foodToIngredient, MEAL_SLOTS, mealForHour } from "@/lib/domain/nutrition";
+import { analysisToIngredients, analyzeMealPhoto, photoThumb } from "@/lib/food/mealPhoto";
 import { useBlobUrl } from "@/lib/hooks/useBlobUrl";
 import { cue } from "@/lib/system/feedback";
 import { toast } from "@/lib/system/store";
@@ -27,37 +27,11 @@ import { fmtDec, fmtInt } from "@/lib/utils/format";
 interface EditableItem {
   key: string;
   ingredient: Ingredient;
-  confidence?: "high" | "medium" | "low";
 }
 
-const NOVA_OF = { raw: 1, processed: 3, ultra_processed: 4 } as const;
 const CONF_META = { high: ["Fiable", "#34d399"], medium: ["Moyen", "#fbbf24"], low: ["Incertain", "#f87171"] } as const;
 
-async function toBase64(blob: Blob): Promise<string> {
-  const buf = new Uint8Array(await blob.arrayBuffer());
-  let bin = "";
-  for (let i = 0; i < buf.length; i += 0x8000) bin += String.fromCharCode(...buf.subarray(i, i + 0x8000));
-  return btoa(bin);
-}
-
-function analysisToItems(a: MealAnalysis): EditableItem[] {
-  return a.items
-    .filter((it) => it.grams > 0)
-    .map((it, i) => {
-      const f = 100 / it.grams;
-      return {
-        key: `${i}-${it.name}`,
-        confidence: it.confidence,
-        ingredient: {
-          name: it.name,
-          grams: Math.round(it.grams),
-          per100: { kcal: it.kcal * f, protein: it.protein * f, carbs: it.carbs * f, fat: it.fat * f, fiber: it.fiber * f },
-          nova: NOVA_OF[it.processing] as Nova,
-          category: it.category as FoodCategory,
-        },
-      };
-    });
-}
+const analysisToItems = (a: MealAnalysis): EditableItem[] => analysisToIngredients(a).map((ingredient, i) => ({ key: `${i}-${ingredient.name}`, ingredient }));
 
 function ScanScreen() {
   const router = useRouter();
@@ -93,20 +67,14 @@ function ScanScreen() {
     setLoading(true);
     setError(null);
     try {
-      const small = await resizeImage(file, 1280, 0.85);
-      const image = await toBase64(small);
-      const res = await apiFetch<{ analysis: MealAnalysis }>("/api/ai/meal", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ image, mediaType: "image/jpeg", note: note.trim() || undefined }),
-      });
-      if (!res.analysis.is_food || res.analysis.items.length === 0) {
+      const result = await analyzeMealPhoto(file, note);
+      if (!result.is_food || result.items.length === 0) {
         setError("Aucun aliment détecté sur cette photo. Essaie avec le repas bien visible, vu de dessus.");
         return;
       }
       cue("quest");
-      setAnalysis(res.analysis);
-      setItems(analysisToItems(res.analysis));
+      setAnalysis(result);
+      setItems(analysisToItems(result));
     } catch (e) {
       setError(e instanceof ApiError ? e.message : "Analyse impossible.");
     } finally {
@@ -128,6 +96,15 @@ function ScanScreen() {
     cue("set");
     toast({ tone: "success", title: "Repas ajouté", message: `${fmtInt(totals.kcal)} kcal · ${MEAL_SLOTS.find((m) => m.id === slot)?.label}` });
     router.push(`/nutrition${date !== today ? `?date=${date}` : ""}`);
+  };
+
+  /** Continues in the dish composer, where more barcodes and photos can be added. */
+  const compose = async () => {
+    const valid = items.filter((i) => i.ingredient.grams > 0);
+    if (!valid.length || !analysis) return;
+    const thumb = file ? await photoThumb(file).catch(() => undefined) : undefined;
+    await addToNewDraft(photoPart(analysis.meal_name, valid.map((i) => i.ingredient), thumb));
+    router.push(`/nutrition/compose?meal=${slot}&date=${date}`);
   };
 
   return (
@@ -248,7 +225,7 @@ function ScanScreen() {
                     />
                     <p className="flex items-center gap-2 px-1 text-[11px] text-ink-3">
                       {fmtInt(it.ingredient.per100.kcal * f)} kcal · P {fmtDec(it.ingredient.per100.protein * f)} · G {fmtDec(it.ingredient.per100.carbs * f)} · L {fmtDec(it.ingredient.per100.fat * f)}
-                      {it.confidence && <Badge color={CONF_META[it.confidence][1]}>{CONF_META[it.confidence][0]}</Badge>}
+                      {it.ingredient.confidence && <Badge color={CONF_META[it.ingredient.confidence][1]}>{CONF_META[it.ingredient.confidence][0]}</Badge>}
                     </p>
                   </div>
                   <NumberInput
@@ -269,9 +246,15 @@ function ScanScreen() {
               );
             })}
           </ul>
-          <Button variant="secondary" block onClick={() => setPicking(true)}>
-            <Plus /> Ajouter un aliment oublié
-          </Button>
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            <Button variant="secondary" block onClick={() => setPicking(true)}>
+              <Plus /> Ajouter un aliment oublié
+            </Button>
+            <Button variant="secondary" block onClick={compose} disabled={!items.length}>
+              <UtensilsCrossed /> Composer un plat avec
+            </Button>
+          </div>
+          <p className="-mt-2 text-xs text-ink-3">« Composer un plat » : ajoute d&apos;autres photos ou codes-barres (sauce, fromage…) avant de l&apos;enregistrer comme un seul plat.</p>
 
           <Segmented value={slot} onChange={setSlot} size="sm" ariaLabel="Repas" options={MEAL_SLOTS.map((m) => ({ value: m.id, label: m.label.replace("Petit-déjeuner", "Petit-déj.") }))} />
           <div className="flex gap-2">

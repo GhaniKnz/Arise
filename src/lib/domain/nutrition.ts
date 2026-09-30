@@ -78,6 +78,38 @@ export function per100OfIngredients(items: Ingredient[]): Nutrients {
   };
 }
 
+export function foodToIngredient(f: FoodItem, grams = f.defaultGrams): Ingredient {
+  return {
+    foodId: f.id,
+    name: f.name,
+    grams,
+    per100: { kcal: f.kcal, protein: f.protein, carbs: f.carbs, fat: f.fat, fiber: f.fiber, sugar: f.sugar, satFat: f.satFat, salt: f.salt },
+    nova: f.nova,
+    category: f.category,
+  };
+}
+
+/** Processing level of a composed dish: calorie-weighted average of its ingredients. */
+export function dishNova(items: Ingredient[]): Nova | undefined {
+  let weight = 0;
+  let acc = 0;
+  for (const it of items) {
+    const kcal = (it.per100.kcal * it.grams) / 100;
+    if (!it.nova || kcal <= 0) continue;
+    acc += it.nova * kcal;
+    weight += kcal;
+  }
+  return weight > 0 ? (Math.round(acc / weight) as Nova) : undefined;
+}
+
+/** Name for a dish the user did not name: the AI's dish name, else its first ingredients. */
+export function suggestDishName(items: Pick<Ingredient, "name">[], photoLabel?: string): string {
+  if (photoLabel?.trim()) return photoLabel.trim();
+  if (!items.length) return "Mon plat";
+  const names = items.slice(0, 2).map((i) => i.name);
+  return names.join(" + ") + (items.length > 2 ? "…" : "");
+}
+
 /** Atwater check — kcal from macros. Useful to detect inconsistent imported data. */
 export function kcalFromMacros(n: Pick<Nutrients, "protein" | "carbs" | "fat">): number {
   return n.protein * 4 + n.carbs * 4 + n.fat * 9;

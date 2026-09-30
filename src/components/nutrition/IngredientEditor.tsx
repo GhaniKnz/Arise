@@ -5,21 +5,10 @@ import { useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { NumberInput } from "@/components/ui/Fields";
 import { ensureFoodCached } from "@/lib/db/repos/nutrition";
-import type { FoodItem, Ingredient } from "@/lib/db/types";
-import { ingredientsTotals } from "@/lib/domain/nutrition";
+import type { Ingredient } from "@/lib/db/types";
+import { foodToIngredient, ingredientsTotals } from "@/lib/domain/nutrition";
 import { fmtDec, fmtInt } from "@/lib/utils/format";
 import { FoodPickerSheet } from "./FoodPickerSheet";
-
-export function foodToIngredient(f: FoodItem, grams = f.defaultGrams): Ingredient {
-  return {
-    foodId: f.id,
-    name: f.name,
-    grams,
-    per100: { kcal: f.kcal, protein: f.protein, carbs: f.carbs, fat: f.fat, fiber: f.fiber, sugar: f.sugar, satFat: f.satFat, salt: f.salt },
-    nova: f.nova,
-    category: f.category,
-  };
-}
 
 /** Editable list of ingredients with live totals (optionally divided in servings). */
 export function IngredientEditor({ items, onChange, servings = 1 }: { items: Ingredient[]; onChange: (items: Ingredient[]) => void; servings?: number }) {

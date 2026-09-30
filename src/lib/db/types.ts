@@ -117,7 +117,18 @@ export interface Favorite extends BaseRow {
   foodId: string;
 }
 
-export type EntrySource = "search" | "barcode" | "photo" | "meal" | "recipe" | "quick";
+export type EntrySource = "search" | "barcode" | "photo" | "meal" | "recipe" | "quick" | "dish";
+
+/** Where a group of ingredients of a composed dish came from (one barcode scan, one AI photo…). */
+export interface DishSource {
+  id: string;
+  kind: "barcode" | "photo" | "search";
+  /** Product name, or the dish name suggested by the AI for a photo. */
+  label: string;
+  /** Small image: product picture URL, or a JPEG data URL for a meal photo. */
+  thumb?: string;
+  barcode?: string;
+}
 
 export interface EntryNutrients {
   kcal: number;
@@ -142,6 +153,11 @@ export interface FoodEntry extends BaseRow, EntryNutrients {
   nova?: Nova;
   category?: FoodCategory;
   source: EntrySource;
+  /** Composed dish logged as one entry: its ingredients, kept to re-edit quantities later. */
+  items?: Ingredient[];
+  sources?: DishSource[];
+  /** Saved dish this entry was made from. */
+  dishId?: string;
 }
 
 export interface Ingredient {
@@ -151,12 +167,17 @@ export interface Ingredient {
   per100: Nutrients;
   nova?: Nova;
   category?: FoodCategory;
+  /** Id of the DishSource (scan or photo) this ingredient came from. */
+  sourceId?: string;
+  /** Confidence of an AI estimate. */
+  confidence?: "high" | "medium" | "low";
 }
 
 export interface SavedMeal extends BaseRow {
   name: string;
   items: Ingredient[];
   defaultSlot?: MealSlot;
+  sources?: DishSource[];
 }
 
 export interface Recipe extends BaseRow {

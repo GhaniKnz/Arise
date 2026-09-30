@@ -14,49 +14,14 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { Panel } from "@/components/ui/Panel";
 import { Sheet } from "@/components/ui/Sheet";
 import { useCustomFoods, useMeals, useRecipes } from "@/lib/db/hooks";
-import { deleteFood, deleteMeal, deleteRecipe, saveMeal, saveRecipe } from "@/lib/db/repos/nutrition";
-import type { FoodItem, Ingredient, MealSlot, Recipe, SavedMeal } from "@/lib/db/types";
-import { ingredientsTotals, MEAL_SLOTS } from "@/lib/domain/nutrition";
+import { deleteFood, deleteMeal, deleteRecipe, saveRecipe } from "@/lib/db/repos/nutrition";
+import type { FoodItem, Ingredient, Recipe } from "@/lib/db/types";
+import { ingredientsTotals } from "@/lib/domain/nutrition";
 import { toast } from "@/lib/system/store";
 import { fmtInt } from "@/lib/utils/format";
 import { useResetOnOpen } from "@/lib/hooks/useResetOnOpen";
 
 type Tab = "meals" | "recipes" | "foods";
-
-function MealEditor({ open, onClose, meal }: { open: boolean; onClose: () => void; meal: SavedMeal | null }) {
-  const [name, setName] = useState("");
-  const [slot, setSlot] = useState<MealSlot>("breakfast");
-  const [items, setItems] = useState<Ingredient[]>([]);
-  useResetOnOpen(
-    open,
-    () => {
-      setName(meal?.name ?? "");
-      setSlot(meal?.defaultSlot ?? "breakfast");
-      setItems(meal?.items ?? []);
-    },
-    meal?.id,
-  );
-  const save = async () => {
-    if (!name.trim() || !items.length) {
-      toast({ tone: "error", title: "Donne un nom et au moins un aliment" });
-      return;
-    }
-    await saveMeal({ id: meal?.id, name: name.trim(), items, defaultSlot: slot });
-    toast({ tone: "success", title: "Repas enregistré", message: name });
-    onClose();
-  };
-  return (
-    <Sheet open={open} onClose={onClose} size="lg" title={meal ? "Modifier le repas" : "Nouveau repas"} description="Ajouté en un clic depuis l'écran d'ajout" footer={<Button block size="lg" onClick={save}>Enregistrer</Button>}>
-      <div className="space-y-4">
-        <Field label="Nom">
-          <TextInput data-autofocus value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex. Petit déjeuner habituel" />
-        </Field>
-        <Segmented value={slot} onChange={setSlot} size="sm" ariaLabel="Repas par défaut" options={MEAL_SLOTS.map((m) => ({ value: m.id, label: m.label.replace("Petit-déjeuner", "Petit-déj.") }))} />
-        <IngredientEditor items={items} onChange={setItems} />
-      </div>
-    </Sheet>
-  );
-}
 
 function RecipeEditor({ open, onClose, recipe }: { open: boolean; onClose: () => void; recipe: Recipe | null }) {
   const [name, setName] = useState("");
@@ -110,7 +75,6 @@ function Library() {
   const meals = useMeals();
   const recipes = useRecipes();
   const foods = useCustomFoods();
-  const [mealEdit, setMealEdit] = useState<SavedMeal | null | undefined>(undefined);
   const [recipeEdit, setRecipeEdit] = useState<Recipe | null | undefined>(undefined);
   const [foodEdit, setFoodEdit] = useState<FoodItem | null | undefined>(undefined);
   if (!profile) return <PageSkeleton />;
@@ -126,9 +90,9 @@ function Library() {
       <PageHeader
         kicker="Nutrition"
         title="Bibliothèque"
-        subtitle="Repas, recettes et aliments personnalisés"
+        subtitle="Plats, recettes et aliments personnalisés"
         action={
-          <Button size="sm" onClick={() => (tab === "meals" ? setMealEdit(null) : tab === "recipes" ? setRecipeEdit(null) : setFoodEdit(null))}>
+          <Button size="sm" onClick={() => (tab === "meals" ? router.push("/nutrition/compose?intent=save") : tab === "recipes" ? setRecipeEdit(null) : setFoodEdit(null))}>
             <Plus /> Créer
           </Button>
         }
@@ -139,7 +103,7 @@ function Library() {
         onChange={setTab}
         ariaLabel="Sections"
         options={[
-          { value: "meals", label: "Repas", icon: <UtensilsCrossed /> },
+          { value: "meals", label: "Plats", icon: <UtensilsCrossed /> },
           { value: "recipes", label: "Recettes", icon: <ChefHat /> },
           { value: "foods", label: "Aliments", icon: <PenLine /> },
         ]}
@@ -150,9 +114,14 @@ function Library() {
           {meals?.length ? (
             meals.map((m) => {
               const t = ingredientsTotals(m.items);
+              const thumb = m.sources?.find((x) => x.thumb)?.thumb;
               return (
                 <Panel key={m.id} className="flex items-center gap-3">
-                  <button type="button" className="min-w-0 flex-1 text-left" onClick={() => setMealEdit(m)}>
+                  {thumb && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={thumb} alt="" className="size-12 shrink-0 rounded-xl bg-white object-cover" />
+                  )}
+                  <button type="button" className="min-w-0 flex-1 text-left" onClick={() => router.push(`/nutrition/compose?dish=${m.id}&intent=save`)}>
                     <p className="font-medium text-ink">{m.name}</p>
                     <p className="truncate text-xs text-ink-3">{m.items.map((i) => `${i.name} (${i.grams} g)`).join(" · ")}</p>
                     <p className="mt-1 text-xs text-ink-2">
@@ -166,7 +135,7 @@ function Library() {
               );
             })
           ) : (
-            <EmptyState icon={<UtensilsCrossed />} title="Aucun repas enregistré" description="Compose ton petit-déjeuner habituel une fois, puis ajoute-le en un tap." action={<Button size="sm" onClick={() => setMealEdit(null)}>Créer un repas</Button>} />
+            <EmptyState icon={<UtensilsCrossed />} title="Aucun plat enregistré" description="Compose un plat avec des codes-barres, des photos IA ou la recherche, puis ajoute-le en un tap." action={<Button size="sm" onClick={() => router.push("/nutrition/compose?intent=save")}>Composer un plat</Button>} />
           )}
         </div>
       )}
@@ -227,7 +196,6 @@ function Library() {
           <EmptyState icon={<PenLine />} title="Aucun aliment personnalisé" description="Ajoute un produit absent de la base avec les valeurs de son étiquette." action={<Button size="sm" onClick={() => setFoodEdit(null)}>Créer un aliment</Button>} />
         ))}
 
-      <MealEditor open={mealEdit !== undefined} onClose={() => setMealEdit(undefined)} meal={mealEdit ?? null} />
       <RecipeEditor open={recipeEdit !== undefined} onClose={() => setRecipeEdit(undefined)} recipe={recipeEdit ?? null} />
       <CustomFoodSheet
         open={foodEdit !== undefined}

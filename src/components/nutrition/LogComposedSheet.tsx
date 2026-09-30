@@ -1,10 +1,12 @@
 "use client";
 
+import { SlidersHorizontal } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Chip, Field, NumberInput, Segmented } from "@/components/ui/Fields";
 import { Sheet } from "@/components/ui/Sheet";
-import { logIngredients, logRecipe } from "@/lib/db/repos/nutrition";
+import { logDish, logRecipe } from "@/lib/db/repos/nutrition";
 import type { MealSlot, Recipe, SavedMeal } from "@/lib/db/types";
 import { ingredientsTotals, MEAL_SLOTS } from "@/lib/domain/nutrition";
 import { cue } from "@/lib/system/feedback";
@@ -18,6 +20,7 @@ type Target = { kind: "meal"; meal: SavedMeal } | { kind: "recipe"; recipe: Reci
 export function LogComposedSheet({ open, onClose, target, date, slot: initialSlot, onLogged }: { open: boolean; onClose: () => void; target: Target | null; date: DayKey; slot: MealSlot; onLogged?: () => void }) {
   const [slot, setSlot] = useState<MealSlot>(initialSlot);
   const [factor, setFactor] = useState<number | undefined>(1);
+  const router = useRouter();
 
   useResetOnOpen(
     open && !!target,
@@ -37,7 +40,8 @@ export function LogComposedSheet({ open, onClose, target, date, slot: initialSlo
 
   const log = async () => {
     if (!factor || factor <= 0) return;
-    if (target.kind === "meal") await logIngredients({ date, meal: slot, items, source: "meal", factor });
+    // A saved dish lands as one journal entry that keeps its ingredients (editable later).
+    if (target.kind === "meal") await logDish({ date, meal: slot, name, items: items.map((it) => ({ ...it, grams: Math.round(it.grams * factor) })), sources: target.meal.sources, dishId: target.meal.id });
     else await logRecipe({ date, meal: slot, recipe: target.recipe, servings: factor });
     cue("set");
     toast({ tone: "success", title: `${name} ajouté`, message: `${fmtInt(totals.kcal * f)} kcal` });
@@ -50,11 +54,18 @@ export function LogComposedSheet({ open, onClose, target, date, slot: initialSlo
       open={open}
       onClose={onClose}
       title={name}
-      description={target.kind === "recipe" ? `Recette · ${target.recipe.servings} portion(s)` : `Repas enregistré · ${items.length} aliments`}
+      description={target.kind === "recipe" ? `Recette · ${target.recipe.servings} portion(s)` : `Plat enregistré · ${items.length} aliments · « Ajuster » pour changer les quantités ou les aliments`}
       footer={
-        <Button block size="lg" onClick={log}>
-          Ajouter · {fmtInt(totals.kcal * f)} kcal
-        </Button>
+        <div className="flex gap-2">
+          {target.kind === "meal" && (
+            <Button variant="secondary" size="lg" onClick={() => router.push(`/nutrition/compose?dish=${target.meal.id}&date=${date}&meal=${slot}`)}>
+              <SlidersHorizontal /> Ajuster
+            </Button>
+          )}
+          <Button block size="lg" onClick={log}>
+            Ajouter · {fmtInt(totals.kcal * f)} kcal
+          </Button>
+        </div>
       }
     >
       <div className="space-y-4">

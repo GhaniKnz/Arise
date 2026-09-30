@@ -1,13 +1,14 @@
 "use client";
 
-import { Heart, Trash2 } from "lucide-react";
+import { Heart, Trash2, UtensilsCrossed } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useGame } from "@/components/providers/GameProvider";
 import { Button, IconButton } from "@/components/ui/Button";
 import { Chip, Field, NumberInput, Segmented } from "@/components/ui/Fields";
 import { Sheet } from "@/components/ui/Sheet";
 import { CATEGORY_META } from "@/lib/data/foods";
-import { useFavoriteIds } from "@/lib/db/hooks";
+import { useFavoriteIds, useKv } from "@/lib/db/hooks";
+import { DRAFT_KEY, type DishDraft } from "@/lib/db/repos/dishDraft";
 import { deleteEntries, logFood, toggleFavorite, updateEntryGrams } from "@/lib/db/repos/nutrition";
 import type { EntrySource, FoodEntry, FoodItem, MealSlot } from "@/lib/db/types";
 import { MEAL_SLOTS, nutritionScore, scaleNutrients } from "@/lib/domain/nutrition";
@@ -29,11 +30,14 @@ interface Props {
   entry?: FoodEntry | null;
   source?: EntrySource;
   onAdded?: (entry: FoodEntry) => void;
+  /** When set, offers to put the food in a composed dish instead of logging it alone. */
+  onAddToDish?: (food: FoodItem, grams: number) => void;
 }
 
-export function FoodSheet({ open, onClose, food, date, meal: initialMeal, entry, source, onAdded }: Props) {
+export function FoodSheet({ open, onClose, food, date, meal: initialMeal, entry, source, onAdded, onAddToDish }: Props) {
   const { profile } = useGame();
   const favIds = useFavoriteIds();
+  const dishDraft = useKv<DishDraft>(DRAFT_KEY.new);
   const [grams, setGrams] = useState<number | undefined>(100);
   const [meal, setMeal] = useState<MealSlot>(initialMeal);
   const [saving, setSaving] = useState(false);
@@ -129,6 +133,22 @@ export function FoodSheet({ open, onClose, food, date, meal: initialMeal, entry,
         </div>
 
         <Segmented value={meal} onChange={setMeal} size="sm" ariaLabel="Repas" options={MEAL_SLOTS.map((m) => ({ value: m.id, label: m.label.replace("Petit-déjeuner", "Petit-déj.") }))} />
+
+        {food && !entry && onAddToDish && (
+          <button
+            type="button"
+            onClick={() => grams && grams > 0 && onAddToDish(food, grams)}
+            className="flex w-full items-center gap-3 rounded-2xl border border-dashed border-arise/40 bg-arise/5 px-3 py-2.5 text-left transition hover:border-arise/70 active:scale-[0.99]"
+          >
+            <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-arise/15 text-arise">
+              <UtensilsCrossed className="size-4.5" />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-sm font-medium text-ink">{dishDraft?.items.length ? `Ajouter au plat en cours (${dishDraft.items.length})` : "Composer un plat avec"}</span>
+              <span className="block text-[11px] text-ink-3">Combine plusieurs codes-barres, photos IA et aliments en un seul plat</span>
+            </span>
+          </button>
+        )}
 
         {n && (
           <div className="grid grid-cols-4 gap-2 text-center">

@@ -1,7 +1,8 @@
 "use client";
 
-import { BookOpen, Camera, Plus, ScanBarcode } from "lucide-react";
+import { BookOpen, Camera, Plus, ScanBarcode, UtensilsCrossed } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Suspense, useMemo, useState } from "react";
 import { useGame } from "@/components/providers/GameProvider";
 import { FoodSheet } from "@/components/nutrition/FoodSheet";
@@ -28,6 +29,7 @@ import { fmtInt } from "@/lib/utils/format";
 
 function NutritionJournal() {
   const { profile } = useGame();
+  const router = useRouter();
   const [date, setDate] = useDateParam();
   const entries = useDayEntries(date);
   const [editing, setEditing] = useState<{ entry: FoodEntry; food: FoodItem | null } | null>(null);
@@ -47,6 +49,10 @@ function NutritionJournal() {
   const left = t.kcal - totals.kcal;
 
   const edit = async (e: FoodEntry) => {
+    if (e.items?.length) {
+      router.push(`/nutrition/compose?entry=${e.id}`);
+      return;
+    }
     if (e.source === "quick" || !e.per100) {
       setQuickEdit(e);
       return;
@@ -91,9 +97,9 @@ function NutritionJournal() {
           <div className="grid grid-cols-4 gap-2">
             {[
               { href: `/nutrition/add?date=${date}`, label: "Ajouter", icon: Plus, primary: true },
-              { href: "/nutrition/scan", label: "Photo IA", icon: Camera },
-              { href: "/nutrition/barcode", label: "Code-barres", icon: ScanBarcode },
-              { href: "/nutrition/library", label: "Repas", icon: BookOpen },
+              { href: `/nutrition/compose?date=${date}`, label: "Composer", icon: UtensilsCrossed },
+              { href: `/nutrition/scan?date=${date}`, label: "Photo IA", icon: Camera },
+              { href: `/nutrition/barcode?date=${date}`, label: "Code-barres", icon: ScanBarcode },
             ].map((a) => (
               <Link
                 key={a.href}
@@ -142,6 +148,13 @@ function NutritionJournal() {
             </dl>
             <p className="mt-3 text-[11px] text-ink-3">Repères : fibres ≥ 25–30 g/jour, sel ≤ 5 g/jour (OMS).</p>
           </Panel>
+          <Link href="/nutrition/library" className="panel flex items-center gap-3 p-4 transition hover:border-line-strong">
+            <BookOpen className="size-5 text-arise" />
+            <span className="min-w-0 flex-1">
+              <span className="block text-sm font-medium text-ink">Mes plats & recettes</span>
+              <span className="block text-xs text-ink-3">Modifier, renommer ou supprimer tes plats enregistrés</span>
+            </span>
+          </Link>
           <Panel>
             <p className="label mb-2">Astuce</p>
             <p className="text-sm text-ink-2">Pèse tes aliments crus quand c&apos;est possible : les valeurs changent beaucoup à la cuisson (le riz triple de poids).</p>

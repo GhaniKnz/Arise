@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, Camera, Check, ChefHat, Loader2, PenLine, ScanBarcode, Search, Sparkles, X, Zap } from "lucide-react";
+import { ArrowLeft, Camera, Check, ChefHat, ChevronRight, Loader2, PenLine, ScanBarcode, Search, Sparkles, UtensilsCrossed, X, Zap } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useRef, useState } from "react";
@@ -13,10 +13,13 @@ import { QuickAddSheet } from "@/components/nutrition/QuickAddSheet";
 import { Button, IconButton } from "@/components/ui/Button";
 import { Chip } from "@/components/ui/Fields";
 import { EmptyState, PageSkeleton } from "@/components/ui/Feedback";
-import { useCustomFoods, useFavoriteIds, useFavorites, useMeals, useRecentFoods, useRecipes, useToday } from "@/lib/db/hooks";
+import { useCustomFoods, useFavoriteIds, useFavorites, useKv, useMeals, useRecentFoods, useRecipes, useToday } from "@/lib/db/hooks";
+import { addToNewDraft, DRAFT_KEY, foodPart, type DishDraft } from "@/lib/db/repos/dishDraft";
+import { ensureFoodCached } from "@/lib/db/repos/nutrition";
 import type { FoodItem, MealSlot, Recipe, SavedMeal } from "@/lib/db/types";
 import { ingredientsTotals, MEAL_SLOTS, mealForHour } from "@/lib/domain/nutrition";
 import { useFoodSearch } from "@/lib/hooks/useFoodSearch";
+import { toast } from "@/lib/system/store";
 import { cn } from "@/lib/utils/cn";
 import { relativeDayLabel } from "@/lib/utils/date";
 import { fmtInt } from "@/lib/utils/format";
@@ -26,7 +29,7 @@ type Tab = "recent" | "favorites" | "meals" | "recipes" | "mine";
 const TABS: { id: Tab; label: string }[] = [
   { id: "recent", label: "Récents" },
   { id: "favorites", label: "Favoris" },
-  { id: "meals", label: "Repas" },
+  { id: "meals", label: "Plats" },
   { id: "recipes", label: "Recettes" },
   { id: "mine", label: "Mes aliments" },
 ];
@@ -54,6 +57,7 @@ function AddFood() {
   const meals = useMeals();
   const recipes = useRecipes();
   const custom = useCustomFoods();
+  const dishDraft = useKv<DishDraft>(DRAFT_KEY.new);
 
   useEffect(() => {
     // Focus the search on desktop only: on mobile the keyboard would hide the shortcuts.
@@ -64,6 +68,15 @@ function AddFood() {
   const goal = profile.goal;
   const searching = query.trim().length > 0;
   const back = `/nutrition${date !== today ? `?date=${date}` : ""}`;
+  const composeHref = `/nutrition/compose?meal=${slot}&date=${date}`;
+  const draftCount = dishDraft?.items.length ?? 0;
+
+  const addToDish = async (f: FoodItem, grams: number) => {
+    if (f.source !== "builtin") await ensureFoodCached(f);
+    await addToNewDraft(foodPart(f, grams, "search"));
+    toast({ tone: "success", title: "Ajouté au plat", message: f.name });
+    router.push(composeHref);
+  };
 
   return (
     <div className="mx-auto max-w-3xl">
@@ -125,6 +138,27 @@ function AddFood() {
             </button>
           ))}
         </div>
+      )}
+
+      {!searching && (
+        <Link
+          href={composeHref}
+          className={cn(
+            "mb-4 flex items-center gap-3 rounded-2xl border px-3 py-3 transition active:scale-[0.99]",
+            draftCount ? "panel-glow border-arise/50 bg-arise/10" : "border-line bg-deep/60 hover:border-line-strong",
+          )}
+        >
+          <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-arise/15 text-arise">
+            <UtensilsCrossed className="size-5" />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-semibold text-ink">{draftCount ? `Reprendre mon plat · ${draftCount} aliment${draftCount > 1 ? "s" : ""}` : "Composer un plat"}</span>
+            <span className="block truncate text-[11px] text-ink-3">
+              {draftCount ? `${fmtInt(ingredientsTotals(dishDraft!.items).kcal)} kcal · ${dishDraft!.name || "en cours de composition"}` : "Codes-barres + photos IA + recherche, quantités modifiables"}
+            </span>
+          </span>
+          <ChevronRight className="size-4 shrink-0 text-ink-3" />
+        </Link>
       )}
 
       {searching ? (
@@ -216,12 +250,18 @@ function AddFood() {
                 <ul>
                   {meals.map((m) => {
                     const t = ingredientsTotals(m.items);
+                    const thumb = m.sources?.find((x) => x.thumb)?.thumb;
                     return (
                       <li key={m.id}>
                         <button type="button" onClick={() => setComposed({ kind: "meal", meal: m })} className="flex w-full items-center gap-3 rounded-xl px-2 py-2.5 text-left hover:bg-white/[0.03]">
-                          <span className="flex size-10 items-center justify-center rounded-lg bg-arise/10 text-lg" aria-hidden>
-                            🍱
-                          </span>
+                          {thumb ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={thumb} alt="" className="size-10 shrink-0 rounded-lg bg-white object-cover" />
+                          ) : (
+                            <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-arise/10 text-lg" aria-hidden>
+                              🍱
+                            </span>
+                          )}
                           <span className="min-w-0 flex-1">
                             <span className="block truncate text-sm font-medium text-ink">{m.name}</span>
                             <span className="block truncate text-[11px] text-ink-3">{m.items.map((i) => i.name).join(", ")}</span>
@@ -231,9 +271,24 @@ function AddFood() {
                       </li>
                     );
                   })}
+                  <li className="px-2 pt-2 pb-1 text-right">
+                    <Link href="/nutrition/library" className="text-xs text-arise">
+                      Gérer mes plats →
+                    </Link>
+                  </li>
                 </ul>
               ) : (
-                <EmptyState className="m-2" title="Aucun repas enregistré" description="Dans le journal, « Enregistrer comme repas » transforme un repas en raccourci." action={<Link href="/nutrition/library" className="text-sm text-arise">Créer un repas →</Link>} />
+                <EmptyState
+                  className="m-2"
+                  icon={<UtensilsCrossed />}
+                  title="Aucun plat enregistré"
+                  description="Compose un plat (codes-barres, photos IA, recherche) et garde-le : tu le refais ensuite en un tap, en ajustant les quantités."
+                  action={
+                    <Link href={composeHref} className="text-sm text-arise">
+                      Composer un plat →
+                    </Link>
+                  }
+                />
               ))}
             {tab === "recipes" &&
               (recipes?.length ? (
@@ -280,7 +335,7 @@ function AddFood() {
         </>
       )}
 
-      <FoodSheet open={!!selected} onClose={() => setSelected(null)} food={selected} date={date} meal={slot} onAdded={() => setAdded((n) => n + 1)} />
+      <FoodSheet open={!!selected} onClose={() => setSelected(null)} food={selected} date={date} meal={slot} onAdded={() => setAdded((n) => n + 1)} onAddToDish={(f, g) => void addToDish(f, g)} />
       <LogComposedSheet open={!!composed} onClose={() => setComposed(null)} target={composed} date={date} slot={slot} onLogged={() => setAdded((n) => n + 1)} />
       <QuickAddSheet open={quickOpen} onClose={() => setQuickOpen(false)} date={date} meal={slot} />
       <CustomFoodSheet open={customOpen} onClose={() => setCustomOpen(false)} onSaved={(f) => setSelected(f)} />

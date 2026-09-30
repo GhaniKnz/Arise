@@ -20,7 +20,7 @@ export function SaveMealSheet({ open, onClose, entries, slot }: { open: boolean;
   const save = async () => {
     if (!name.trim() || !items.length) return;
     await saveMeal({ name: name.trim(), items, defaultSlot: slot });
-    toast({ tone: "success", title: "Repas enregistré", message: `${name} · ajout en un clic depuis « Repas »` });
+    toast({ tone: "success", title: "Plat enregistré", message: `${name} · ajout en un clic depuis « Plats »` });
     onClose();
   };
 
@@ -28,7 +28,7 @@ export function SaveMealSheet({ open, onClose, entries, slot }: { open: boolean;
     <Sheet
       open={open}
       onClose={onClose}
-      title="Enregistrer comme repas"
+      title="Enregistrer comme plat"
       description={`${items.length} aliments · ${fmtInt(t.kcal)} kcal`}
       footer={
         <Button block size="lg" onClick={save} disabled={!name.trim() || !items.length}>
@@ -37,7 +37,7 @@ export function SaveMealSheet({ open, onClose, entries, slot }: { open: boolean;
       }
     >
       <div className="space-y-3">
-        <Field label="Nom du repas">
+        <Field label="Nom du plat">
           <TextInput data-autofocus value={name} onChange={(e) => setName(e.target.value)} maxLength={60} />
         </Field>
         <ul className="space-y-1 text-sm text-ink-2">

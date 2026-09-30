@@ -57,7 +57,7 @@ export function MealSection({ meal, entries, goal, addHref, onEdit, onCopyYester
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-sm text-ink">{e.name}</span>
                       <span className="block truncate text-[11px] text-ink-3">
-                        {e.brand ? `${e.brand} · ` : ""}
+                        {e.items?.length ? `🍽 Plat · ${e.items.length} aliment${e.items.length > 1 ? "s" : ""} · ` : e.brand ? `${e.brand} · ` : ""}
                         {e.grams > 0 ? `${fmtInt(e.grams)} ${e.category === "drinks" ? "ml" : "g"}` : "Ajout rapide"} · P {fmtInt(e.protein)} g
                       </span>
                     </span>
@@ -80,7 +80,7 @@ export function MealSection({ meal, entries, goal, addHref, onEdit, onCopyYester
       {entries.length > 1 && (
         <div className="flex justify-end border-t border-line/50 px-4 py-2">
           <button type="button" onClick={onSaveAsMeal} className="flex items-center gap-1.5 text-xs text-ink-3 hover:text-ink">
-            <BookmarkPlus className="size-3.5" /> Enregistrer comme repas
+            <BookmarkPlus className="size-3.5" /> Enregistrer comme plat
           </button>
         </div>
       )}
