@@ -71,6 +71,30 @@ await step("workout session", async () => {
   await page.getByText("SÉANCE TERMINÉE").waitFor();
 });
 
+await step("edit past session", async () => {
+  await page.getByRole("button", { name: "Modifier", exact: true }).click();
+  await page.getByText("Mode édition").waitFor();
+  const sets = () => page.getByRole("button", { name: /^Options de la série/ }).count();
+  await page.getByRole("button", { name: "Série", exact: true }).first().click();
+  await page.getByRole("button", { name: "Options de la série 2" }).waitFor();
+  await page.getByRole("button", { name: "Retirer une série" }).first().click();
+  await page.getByRole("button", { name: "Annuler", exact: true }).waitFor();
+  if ((await sets()) !== 1) throw new Error(`expected 1 set, got ${await sets()}`);
+  await page.getByRole("button", { name: /Ajouter un exercice/ }).click();
+  await page.getByLabel("Rechercher un exercice").fill("tractions");
+  await page.getByRole("button", { name: /^Tractions/ }).first().click();
+  await page.getByRole("heading", { name: "Tractions", exact: true }).waitFor();
+  await page.getByRole("button", { name: /Nom, date, durée/ }).click();
+  await page.getByLabel("Nom").fill("Pecs du matin");
+  await page.getByRole("button", { name: "Enregistrer" }).click();
+  await page.getByRole("heading", { name: "Pecs du matin" }).waitFor();
+  await page.getByRole("button", { name: "Retirer Tractions de la séance" }).click();
+  await page.getByRole("button", { name: "Retirer", exact: true }).click();
+  await page.getByRole("heading", { name: "Tractions", exact: true }).waitFor({ state: "detached" });
+  await page.getByRole("button", { name: "Terminer" }).click();
+  await page.getByRole("button", { name: "Modifier", exact: true }).waitFor();
+});
+
 await step("pages render", async () => {
   for (const r of ["/workout", "/progress", "/progress?tab=photos", "/calendar", "/analytics", "/status", "/knowledge", "/report", "/coach", "/settings", "/workout/exercises", "/nutrition/library", "/nutrition/barcode"]) {
     await page.goto(`${base}${r}`, { waitUntil: "networkidle" });

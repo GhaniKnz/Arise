@@ -13,10 +13,8 @@ import { Panel } from "@/components/ui/Panel";
 import { Sheet } from "@/components/ui/Sheet";
 import { routineColor, routineIcon } from "@/lib/data/routines";
 import { useExerciseLibrary, useRoutines } from "@/lib/db/hooks";
-import { db } from "@/lib/db";
-import { stamp } from "@/lib/db/repo";
-import { lastPerformance, logPastSession, startSession } from "@/lib/db/repos/workout";
-import type { Routine, WorkoutSet } from "@/lib/db/types";
+import { logPastSession, startSession } from "@/lib/db/repos/workout";
+import type { Routine } from "@/lib/db/types";
 import { addDays, weekdayIndex } from "@/lib/utils/date";
 import { cn } from "@/lib/utils/cn";
 
@@ -28,16 +26,6 @@ function PastSessionSheet({ open, onClose, routines, onCreated }: { open: boolea
   const save = async () => {
     const routine = routines.find((r) => r.id === routineId);
     const s = await logPastSession({ date, routine, name: routine?.name ?? "Séance", type: routine?.type ?? "custom", durationMin: duration ?? 60 });
-    // Prefill with last performance so only corrections are needed.
-    const rows: WorkoutSet[] = [];
-    for (const ex of routine?.exercises ?? []) {
-      const prev = await lastPerformance(ex.exerciseId, s.id);
-      for (let i = 0; i < ex.sets; i++) {
-        const ref = prev[i] ?? prev.at(-1);
-        rows.push(stamp<WorkoutSet>({ sessionId: s.id, exerciseId: ex.exerciseId, date, order: i, weightKg: ref?.weightKg ?? 0, reps: ref?.reps ?? ex.repsMin, warmup: false, done: true, completedAt: new Date(`${date}T18:${String(10 + i).padStart(2, "0")}:00`).toISOString() }));
-      }
-    }
-    if (rows.length) await db.sets.bulkAdd(rows);
     onCreated(s.id);
   };
   return (

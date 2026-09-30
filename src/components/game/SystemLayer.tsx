@@ -257,6 +257,19 @@ function ToastItem({ t }: { t: Toast }) {
           {t.message && <p className="mt-0.5 text-xs text-ink-3">{t.message}</p>}
         </div>
         {t.xp != null && <span className={cn("shrink-0 font-display text-sm font-semibold text-arise")}>+{t.xp} XP</span>}
+        {t.action && (
+          <button
+            type="button"
+            onClick={() => {
+              t.action!.onClick();
+              dismissToast(t.id);
+            }}
+            className="shrink-0 rounded-lg border px-2.5 py-1 text-xs font-semibold transition active:scale-95"
+            style={{ borderColor: `color-mix(in srgb, ${accent} 50%, transparent)`, color: accent }}
+          >
+            {t.action.label}
+          </button>
+        )}
       </div>
     </motion.div>
   );

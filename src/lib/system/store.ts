@@ -12,6 +12,8 @@ export interface Toast {
   title: string;
   message?: string;
   xp?: number;
+  /** Optional one-tap action (e.g. undo). */
+  action?: { label: string; onClick: () => void };
 }
 
 export type Overlay =

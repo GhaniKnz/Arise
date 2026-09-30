@@ -68,6 +68,8 @@ html {
   background: var(--color-void);
   -webkit-tap-highlight-color: transparent;
   text-size-adjust: 100%;
+  /* No double-tap or pinch zoom (pan and scroll still work). */
+  touch-action: pan-x pan-y;
 }
 
 body {

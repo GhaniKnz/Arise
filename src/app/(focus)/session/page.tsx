@@ -9,6 +9,7 @@ import { ExerciseIcon, RoutineIcon } from "@/components/icons/ExerciseIcon";
 import { ExerciseBlock } from "@/components/workout/ExerciseBlock";
 import { ExercisePickerSheet } from "@/components/workout/ExercisePickerSheet";
 import { FinishSheet } from "@/components/workout/FinishSheet";
+import { RemoveExerciseSheet } from "@/components/workout/RemoveExerciseSheet";
 import { RestTimerBar } from "@/components/workout/RestTimerBar";
 import { gainLabel } from "@/components/workout/SetRow";
 import { SessionStarter } from "@/components/workout/SessionStarter";
@@ -19,7 +20,8 @@ import { Panel } from "@/components/ui/Panel";
 import { Sheet } from "@/components/ui/Sheet";
 import { useActiveSession, useExerciseLibrary, useRoutine, useSessionSets } from "@/lib/db/hooks";
 import { routineColor, routineIcon } from "@/lib/data/routines";
-import { addExerciseToSession, blockSets, deleteSession, finishSession, removeExerciseFromSession, renameSession, reorderSessionExercises, slotAt } from "@/lib/db/repos/workout";
+import { addExerciseToRoutine, addExerciseToSession, blockSets, deleteSession, finishSession, removeExerciseFromRoutine, removeExerciseFromSession, renameSession, reorderSessionExercises, slotAt, syncRoutineFromSession } from "@/lib/db/repos/workout";
+import { db } from "@/lib/db";
 import { useRestTimer } from "@/lib/hooks/useRestTimer";
 import { useSessionHistory } from "@/lib/hooks/useSessionHistory";
 import { cue } from "@/lib/system/feedback";
@@ -46,6 +48,7 @@ export default function SessionPage() {
   // Finished sessions only: this session's records are tracked in sessionPRs.
   const prsToday = prs.filter((p) => p.date === today).length;
   const [renaming, setRenaming] = useState(false);
+  const [removing, setRemoving] = useState<number | null>(null);
   const [newName, setNewName] = useState("");
   const [renameRoutine, setRenameRoutine] = useState(true);
 
@@ -80,7 +83,7 @@ export default function SessionPage() {
             <ChevronLeft />
           </IconButton>
         </div>
-        <SessionStarter onStarted={() => setIndex(0)} onPastCreated={(id) => router.push(`/workout/history/${id}`)} />
+        <SessionStarter onStarted={() => setIndex(0)} onPastCreated={(id) => router.push(`/workout/history/${id}?edit=1`)} />
       </>
     );
 
@@ -92,8 +95,12 @@ export default function SessionPage() {
   const [doneHere, totalHere] = exerciseId ? progressOf(current) : [0, 0];
   const exerciseComplete = totalHere > 0 && doneHere === totalHere;
 
-  const onFinish = async (opts: { rpe?: number; notes?: string }) => {
+  const onFinish = async (opts: { rpe?: number; notes?: string; syncRoutine?: boolean }) => {
     await finishSession(session, opts);
+    if (opts.syncRoutine && routine) {
+      await syncRoutineFromSession(session, await db.sets.where("sessionId").equals(session.id).toArray());
+      toast({ tone: "success", title: `Programme « ${routine.name} » mis à jour`, message: "Il reprend les exercices de cette séance." });
+    }
     timer.skip();
     cue("levelup");
     toast({ tone: "quest", title: "Séance terminée", message: session.name, xp: 100 });
@@ -175,6 +182,7 @@ export default function SessionPage() {
                 session={session}
                 exercise={exercise}
                 slot={slot}
+                onRemove={() => setRemoving(current)}
                 sets={exSets}
                 history={history?.get(exercise.id)}
                 repRange={repRange}
@@ -223,8 +231,14 @@ export default function SessionPage() {
         open={picking}
         onClose={() => setPicking(false)}
         added={ids}
-        onPick={async (e) => {
-          await addExerciseToSession(session, e.id, 3, 8);
+        routineName={routine?.name}
+        onPick={async (e, { alsoRoutine }) => {
+          const compound = e.mechanic === "compound";
+          await addExerciseToSession(session, e.id, 3, compound ? 6 : 10);
+          if (alsoRoutine && routine) {
+            await addExerciseToRoutine(routine.id, { exerciseId: e.id, sets: 3, repsMin: compound ? 6 : 10, repsMax: compound ? 10 : 15, restSec: e.restSec });
+            toast({ tone: "success", title: "Exercice ajouté", message: `${e.name} · aussi dans le programme « ${routine.name} »` });
+          }
           setIndex(ids.length);
         }}
       />
@@ -258,7 +272,7 @@ export default function SessionPage() {
                 <IconButton label="Descendre" size="sm" disabled={i === ids.length - 1} onClick={() => move(1)}>
                   <ArrowDown />
                 </IconButton>
-                <IconButton label={`Retirer ${ex?.name ?? "l'exercice"}`} size="sm" onClick={() => removeExerciseFromSession(session, i)}>
+                <IconButton label={`Retirer ${ex?.name ?? "l'exercice"}`} size="sm" onClick={() => setRemoving(i)}>
                   <Trash2 />
                 </IconButton>
               </li>
@@ -294,7 +308,26 @@ export default function SessionPage() {
         </div>
       </Sheet>
 
-      <FinishSheet open={finishing} onClose={() => setFinishing(false)} sets={sets} elapsedSec={elapsed} prCount={sessionPRs} onFinish={onFinish} onDiscard={onDiscard} />
+      {removing != null && ids[removing] && (
+        <RemoveExerciseSheet
+          open
+          onClose={() => setRemoving(null)}
+          exerciseName={byId(ids[removing])?.name ?? "l'exercice"}
+          setCount={blockSets(sets, ids, removing).length}
+          routineName={routine && routine.exercises.filter((e) => e.exerciseId === ids[removing]).length > slotAt(ids, removing) ? routine.name : undefined}
+          onConfirm={async (alsoRoutine) => {
+            const idx = removing;
+            const exId = ids[idx];
+            const occurrence = slotAt(ids, idx);
+            await removeExerciseFromSession(session, idx);
+            if (alsoRoutine && routine) await removeExerciseFromRoutine(routine.id, exId, occurrence);
+            setIndex((i) => Math.max(0, Math.min(i, ids.length - 2)));
+            toast({ tone: "system", title: "Exercice retiré", message: alsoRoutine && routine ? `Aussi du programme « ${routine.name} »` : undefined });
+          }}
+        />
+      )}
+
+      <FinishSheet open={finishing} onClose={() => setFinishing(false)} sets={sets} elapsedSec={elapsed} prCount={sessionPRs} onFinish={onFinish} onDiscard={onDiscard} session={session} routine={routine ?? undefined} />
     </div>
   );
 }

@@ -5,7 +5,7 @@ import { useMemo, useState } from "react";
 import { EquipmentIcon } from "@/components/icons/EquipmentIcon";
 import { ExerciseIcon } from "@/components/icons/ExerciseIcon";
 import { Button } from "@/components/ui/Button";
-import { Chip, TextInput } from "@/components/ui/Fields";
+import { Chip, TextInput, Toggle } from "@/components/ui/Fields";
 import { Sheet } from "@/components/ui/Sheet";
 import { EQUIPMENT_LABEL, MUSCLE_GROUPS, MUSCLE_LABEL } from "@/lib/data/exercises";
 import { normalize } from "@/lib/data/foods";
@@ -48,7 +48,23 @@ export function ExerciseListItem({ ex, onClick, trailing, selected }: { ex: Exer
  * Pick an exercise to add. `added` lists exercises already in the session or
  * program: they stay pickable (an exercise can be done several times) and show a count.
  */
-export function ExercisePickerSheet({ open, onClose, onPick, added = [] }: { open: boolean; onClose: () => void; onPick: (e: Exercise) => void; added?: string[] }) {
+export function ExercisePickerSheet({
+  open,
+  onClose,
+  onPick,
+  added = [],
+  routineName,
+  alsoRoutineDefault = true,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onPick: (e: Exercise, opts: { alsoRoutine: boolean }) => void;
+  added?: string[];
+  /** When set, offers to add the exercise to this program too. */
+  routineName?: string;
+  alsoRoutineDefault?: boolean;
+}) {
+  const [alsoRoutine, setAlsoRoutine] = useState(alsoRoutineDefault);
   const { all } = useExerciseLibrary();
   const [q, setQ] = useState("");
   const [muscle, setMuscle] = useState<Muscle | null>(null);
@@ -61,7 +77,7 @@ export function ExercisePickerSheet({ open, onClose, onPick, added = [] }: { ope
   }, [added]);
 
   const pick = (e: Exercise) => {
-    onPick(e);
+    onPick(e, { alsoRoutine: !!routineName && alsoRoutine });
     onClose();
     setQ("");
     setCreating(false);
@@ -71,6 +87,7 @@ export function ExercisePickerSheet({ open, onClose, onPick, added = [] }: { ope
     <>
       <Sheet open={open && !creating} onClose={onClose} title="Ajouter un exercice" tall size="lg">
         <div className="sticky top-0 z-10 -mx-5 space-y-2 bg-[#0f1628] px-5 pb-2">
+          {routineName && <Toggle checked={alsoRoutine} onChange={setAlsoRoutine} label={`Ajouter aussi au programme « ${routineName} »`} description="Il sera prévu dans tes prochaines séances" />}
           <div className="relative">
             <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-ink-3" />
             <TextInput value={q} onChange={(e) => setQ(e.target.value)} placeholder="Rechercher (développé, squat, curl…)" className="pl-9" aria-label="Rechercher un exercice" />
