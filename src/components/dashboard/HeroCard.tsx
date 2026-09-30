@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { motion } from "motion/react";
 import { useGame } from "@/components/providers/GameProvider";
 import { RankBadge, XpBar } from "@/components/game/LevelBadge";
@@ -16,18 +17,24 @@ export function HeroCard() {
   const score = ledger.days.get(today)?.score;
   const rank = rankFor(lvl.level);
   return (
-    <section className="panel panel-glow hud relative overflow-hidden p-4 sm:p-6" aria-label="Statut du chasseur">
+    <section className="panel panel-glow hud hero-card relative overflow-hidden p-4 sm:p-6" aria-label="Statut du chasseur">
       <div className="pointer-events-none absolute -top-24 -right-16 size-64 rounded-full bg-[radial-gradient(circle,rgb(139_92_246/0.25),transparent_65%)]" aria-hidden />
+      <Image src="/art/shadow-hunter.png" alt="" aria-hidden width={640} height={960} priority unoptimized className="hero-card__art" />
+      <div className="relative mb-3 flex items-center gap-2 font-display text-[10px] font-semibold tracking-[0.22em] text-arise/85 sm:mb-4">
+        <span className="size-1.5 rounded-full bg-arise shadow-[0_0_9px_#4da3ff]" />
+        SYSTÈME / STATUT
+        <span className="ml-auto text-ink-3">{RANK_META[rank].label}</span>
+      </div>
       <div className="relative flex items-center gap-4">
         <Link href="/status" aria-label="Voir mon statut" className="shrink-0">
           <RankBadge level={lvl.level} size="lg" />
         </Link>
         <div className="min-w-0 flex-1">
           <p className="text-xs text-ink-3 first-letter:uppercase">{formatDayLong(today)}</p>
-          <motion.h1 initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="truncate font-display text-2xl font-bold text-ink sm:text-3xl">
+          <motion.h1 initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="break-words font-display text-2xl leading-tight font-bold text-ink max-[359px]:text-xl sm:text-3xl">
             {greeting()} <span className="text-gradient">{profile?.name}</span>
           </motion.h1>
-          <p className="mt-0.5 text-sm leading-snug text-ink-2">
+          <p className="mt-0.5 text-sm leading-snug text-ink-2 max-[359px]:text-xs">
             <span className="font-display font-semibold whitespace-nowrap text-ink">LEVEL {lvl.level}</span>
             <span className="text-ink-3"> · {titleFor(lvl.level)} · </span>
             <span className="whitespace-nowrap" style={{ color: RANK_META[rank].color }}>{RANK_META[rank].label}</span>

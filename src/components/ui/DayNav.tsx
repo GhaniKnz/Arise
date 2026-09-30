@@ -37,7 +37,7 @@ export function DayNav({ date, onChange }: { date: DayKey; onChange: (d: DayKey)
       <IconButton label="Jour précédent" size="sm" onClick={() => onChange(addDays(date, -1))}>
         <ChevronLeft />
       </IconButton>
-      <button type="button" onClick={() => onChange(today)} className="min-w-28 px-2 text-center text-sm font-semibold text-ink first-letter:uppercase" aria-label="Revenir à aujourd'hui">
+      <button type="button" onClick={() => onChange(today)} className="touch-target min-w-28 px-2 text-center text-sm font-semibold text-ink first-letter:uppercase" aria-label="Revenir à aujourd'hui">
         {relativeDayLabel(date, today)}
       </button>
       <IconButton label="Jour suivant" size="sm" onClick={() => onChange(addDays(date, 1))} disabled={date >= today}>

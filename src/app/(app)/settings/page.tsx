@@ -26,7 +26,7 @@ export default function SettingsPage() {
       <PageHeader kicker="Système" title="Réglages" />
       <nav className="-mx-4 mb-4 flex gap-1.5 overflow-x-auto px-4 pb-1 no-scrollbar" aria-label="Sections des réglages">
         {NAV.map(([href, label]) => (
-          <a key={href} href={href} className="shrink-0 rounded-full border border-line bg-deep/60 px-3 py-1.5 text-[13px] text-ink-2 hover:border-line-strong hover:text-ink">
+          <a key={href} href={href} className="touch-target inline-flex shrink-0 items-center rounded-full border border-line bg-deep/60 px-3 py-1.5 text-[13px] text-ink-2 hover:border-line-strong hover:text-ink">
             {label}
           </a>
         ))}

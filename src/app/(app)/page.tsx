@@ -13,7 +13,7 @@ const item = { hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0, transiti
 
 export default function DashboardPage() {
   return (
-    <motion.div className="grid grid-cols-1 gap-4 lg:grid-flow-row-dense lg:grid-cols-3 lg:gap-5" initial="hidden" animate="show" variants={{ show: { transition: { staggerChildren: 0.06 } } }}>
+    <motion.div className="dashboard-grid grid grid-cols-1 gap-4 lg:grid-flow-row-dense lg:grid-cols-3 lg:gap-5" initial="hidden" animate="show" variants={{ show: { transition: { staggerChildren: 0.06 } } }}>
       <motion.div variants={item} className="lg:col-span-3">
         <HeroCard />
       </motion.div>

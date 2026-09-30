@@ -8,7 +8,7 @@ type Variant = "primary" | "secondary" | "ghost" | "danger" | "violet";
 type Size = "sm" | "md" | "lg";
 
 const base =
-  "relative inline-flex select-none items-center justify-center gap-2 rounded-xl font-medium transition-[transform,background-color,box-shadow,opacity] duration-150 active:scale-[0.97] disabled:pointer-events-none disabled:opacity-45 [&>svg]:shrink-0";
+  "touch-target relative inline-flex select-none items-center justify-center gap-2 rounded-xl font-medium transition-[transform,background-color,box-shadow,opacity] duration-150 active:scale-[0.97] disabled:pointer-events-none disabled:opacity-45 [&>svg]:shrink-0";
 
 const variants: Record<Variant, string> = {
   primary: "bg-arise-gradient text-white shadow-[0_0_0_1px_rgb(120_170_255/0.45),0_8px_24px_-8px_rgb(77_163_255/0.7)] hover:brightness-110",
@@ -82,7 +82,7 @@ export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(functio
       type={type}
       aria-label={label}
       title={label}
-      className={cn("inline-flex shrink-0 items-center justify-center rounded-xl transition active:scale-95 disabled:opacity-40", s, v, className)}
+      className={cn("touch-target inline-flex shrink-0 items-center justify-center rounded-xl transition active:scale-95 disabled:opacity-40", s, v, className)}
       {...rest}
     />
   );

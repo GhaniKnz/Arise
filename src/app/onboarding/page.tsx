@@ -105,7 +105,7 @@ export default function OnboardingPage() {
   };
 
   return (
-    <div className="relative flex min-h-dvh flex-col">
+    <div className="relative isolate flex min-h-dvh flex-col">
       <Background />
       {step !== "welcome" && (
         <div className="mx-auto flex w-full max-w-xl items-center gap-3 px-4 pt-[calc(1rem+var(--safe-top))]">

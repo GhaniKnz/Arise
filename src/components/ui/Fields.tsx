@@ -19,19 +19,19 @@ export function Field({ label, hint, error, children, htmlFor, className }: { la
 }
 
 const inputBase =
-  "h-11 w-full rounded-xl border border-line-strong bg-void/60 px-3.5 text-[15px] text-ink placeholder:text-ink-3/70 outline-none transition focus:border-arise focus:shadow-[0_0_0_3px_rgb(77_163_255/0.18)]";
+  "h-11 w-full rounded-xl border border-line-strong bg-void/60 px-3.5 text-ink placeholder:text-ink-3/70 outline-none transition focus:border-arise focus:shadow-[0_0_0_3px_rgb(77_163_255/0.18)]";
 
 export const TextInput = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputElement>>(function TextInput({ className, ...rest }, ref) {
-  return <input ref={ref} className={cn(inputBase, className)} {...rest} />;
+  return <input ref={ref} className={cn(inputBase, "text-base", className)} {...rest} />;
 });
 
 export const TextArea = forwardRef<HTMLTextAreaElement, TextareaHTMLAttributes<HTMLTextAreaElement>>(function TextArea({ className, ...rest }, ref) {
-  return <textarea ref={ref} className={cn(inputBase, "h-auto min-h-24 py-2.5", className)} {...rest} />;
+  return <textarea ref={ref} className={cn(inputBase, "h-auto min-h-24 py-2.5 text-base", className)} {...rest} />;
 });
 
 export function Select({ className, children, ...rest }: SelectHTMLAttributes<HTMLSelectElement>) {
   return (
-    <select className={cn(inputBase, "appearance-none bg-[url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2212%22 height=%2212%22 fill=%22none%22 stroke=%22%237c87a6%22 stroke-width=%222%22><path d=%22M2 4l4 4 4-4%22/></svg>')] bg-[length:12px] bg-[right_14px_center] bg-no-repeat pr-9", className)} {...rest}>
+    <select className={cn(inputBase, "appearance-none bg-[url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2212%22 height=%2212%22 fill=%22none%22 stroke=%22%237c87a6%22 stroke-width=%222%22><path d=%22M2 4l4 4 4-4%22/></svg>')] bg-[length:12px] bg-[right_14px_center] bg-no-repeat pr-9 text-base", className)} {...rest}>
       {children}
     </select>
   );
@@ -132,13 +132,15 @@ export function Toggle({ checked, onChange, label, description }: { checked: boo
         type="button"
         aria-checked={checked}
         onClick={() => onChange(!checked)}
-        className={cn("relative h-7 w-12 shrink-0 rounded-full border transition", checked ? "border-arise/60 bg-arise/30" : "border-line-strong bg-deep")}
+        className="touch-target flex h-11 w-12 shrink-0 items-center"
       >
-        <motion.span
-          className={cn("absolute top-0.5 size-5.5 rounded-full", checked ? "bg-arise shadow-glow" : "bg-ink-3")}
-          animate={{ left: checked ? 24 : 3 }}
-          transition={{ type: "spring", stiffness: 500, damping: 32 }}
-        />
+        <span className={cn("relative block h-7 w-12 rounded-full border transition", checked ? "border-arise/60 bg-arise/30" : "border-line-strong bg-deep")}>
+          <motion.span
+            className={cn("absolute top-0.5 size-5.5 rounded-full", checked ? "bg-arise shadow-glow" : "bg-ink-3")}
+            animate={{ left: checked ? 24 : 3 }}
+            transition={{ type: "spring", stiffness: 500, damping: 32 }}
+          />
+        </span>
       </button>
     </div>
   );
@@ -167,7 +169,7 @@ export function Segmented<T extends string>({ value, onChange, options, classNam
             aria-checked={active}
             onClick={() => onChange(o.value)}
             className={cn(
-              "relative flex min-w-0 flex-1 items-center justify-center gap-1.5 rounded-lg font-medium whitespace-nowrap transition-colors",
+              "touch-target relative flex min-w-0 flex-1 items-center justify-center gap-1.5 rounded-lg font-medium whitespace-nowrap transition-colors",
               size === "sm" ? "h-8 px-1.5 text-xs" : "h-9 px-2 text-sm",
               active ? "text-ink" : "text-ink-3 hover:text-ink-2",
             )}
@@ -191,7 +193,7 @@ export function Chip({ active, onClick, children, className }: { active?: boolea
       onClick={onClick}
       aria-pressed={active}
       className={cn(
-        "inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full border px-3 text-[13px] font-medium whitespace-nowrap transition [&>svg]:size-3.5",
+        "touch-target inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full border px-3 text-[13px] font-medium whitespace-nowrap transition [&>svg]:size-3.5",
         active ? "border-arise/60 bg-arise/15 text-ink shadow-[0_0_12px_rgb(77_163_255/0.25)]" : "border-line bg-deep/60 text-ink-2 hover:border-line-strong",
         className,
       )}

@@ -44,14 +44,14 @@ export function SetRow({ set, index, previous, weighted, onCommit, onToggleDone,
     <motion.div
       layout
       className={cn(
-        "grid grid-cols-[2.25rem_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_3rem] items-center gap-2 rounded-2xl px-1.5 py-1.5 transition-colors",
+        "grid grid-cols-[2.75rem_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_3rem] items-center gap-2 rounded-2xl px-1.5 py-1.5 transition-colors",
         set.done ? "bg-good/[0.08]" : "",
       )}
     >
       <button
         type="button"
         onClick={onMenu}
-        className={cn("flex size-9 items-center justify-center rounded-lg font-display text-sm font-bold", set.warmup ? "bg-warn/15 text-warn" : "bg-white/[0.05] text-ink-2")}
+        className={cn("touch-target flex size-11 items-center justify-center rounded-lg font-display text-sm font-bold", set.warmup ? "bg-warn/15 text-warn" : "bg-white/[0.05] text-ink-2")}
         aria-label={`Options de la série ${index + 1}`}
       >
         {set.warmup ? "É" : index + 1}

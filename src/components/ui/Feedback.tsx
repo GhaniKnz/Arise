@@ -83,7 +83,7 @@ export function InfoTip({ children, label = "Explication" }: { children: ReactNo
         aria-controls={id}
         onClick={() => setOpen((o) => !o)}
         onBlur={() => setOpen(false)}
-        className="inline-flex size-5 items-center justify-center rounded-full text-ink-3 hover:text-ink"
+        className="touch-target inline-flex size-5 items-center justify-center rounded-full text-ink-3 hover:text-ink"
       >
         <Info className="size-3.5" />
       </button>

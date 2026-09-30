@@ -3,6 +3,7 @@
 import { motion } from "motion/react";
 import { ChevronRight, Target } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 import { useGame } from "@/components/providers/GameProvider";
 import { Panel, PanelHeader } from "@/components/ui/Panel";
 import { projectGoal } from "@/lib/domain/trend";
@@ -28,12 +29,13 @@ export function GoalCard() {
   if (!g) return null;
   const losing = g.target < g.start;
   return (
-    <Panel>
+    <Panel className="art-card art-card--goal">
+      <Image src="/art/goal-crystal.png" alt="" aria-hidden width={440} height={440} unoptimized className="art-card__art" />
       <PanelHeader
         title="Objectif actuel"
         icon={<Target />}
         action={
-          <Link href="/progress" className="flex items-center text-xs text-ink-3 hover:text-ink" aria-label="Voir la progression">
+          <Link href="/progress" className="touch-target flex items-center text-xs text-ink-3 hover:text-ink" aria-label="Voir la progression">
             Détails <ChevronRight className="size-3.5" />
           </Link>
         }

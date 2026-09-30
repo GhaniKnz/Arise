@@ -101,10 +101,10 @@ function AddFood() {
             placeholder="Rechercher un aliment (poulet, riz, skyr…)"
             aria-label="Rechercher un aliment"
             enterKeyHint="search"
-            className="h-12 w-full rounded-2xl border border-line-strong bg-deep/90 pr-11 pl-11 text-[15px] text-ink outline-none placeholder:text-ink-3 focus:border-arise focus:shadow-[0_0_0_3px_rgb(77_163_255/0.18)]"
+            className="h-12 w-full rounded-2xl border border-line-strong bg-deep/90 pr-11 pl-11 text-base text-ink outline-none placeholder:text-ink-3 focus:border-arise focus:shadow-[0_0_0_3px_rgb(77_163_255/0.18)]"
           />
           {query && (
-            <button type="button" onClick={() => setQuery("")} className="absolute top-1/2 right-3 -translate-y-1/2 text-ink-3 hover:text-ink" aria-label="Effacer la recherche">
+            <button type="button" onClick={() => setQuery("")} className="touch-target absolute top-1/2 right-1 flex items-center justify-center -translate-y-1/2 text-ink-3 hover:text-ink" aria-label="Effacer la recherche">
               <X className="size-5" />
             </button>
           )}

@@ -15,7 +15,7 @@ export default function FocusLayout({ children }: { children: React.ReactNode })
   }, [ready, profile, router]);
   if (!ready || !profile) return <Splash />;
   return (
-    <div className="relative min-h-dvh">
+    <div className="relative isolate min-h-dvh" data-effects={profile.effects}>
       <Background particles={false} />
       <main id="main" className="mx-auto w-full max-w-2xl px-4 pt-[calc(0.5rem+var(--safe-top))] pb-40">
         {children}

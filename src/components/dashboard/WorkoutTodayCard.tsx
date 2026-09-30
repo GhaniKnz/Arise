@@ -3,6 +3,7 @@
 import { CheckCircle2, Dumbbell, Moon, Play } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import Image from "next/image";
 import { useGame } from "@/components/providers/GameProvider";
 import { MuscleIcon } from "@/components/icons/MuscleIcon";
 import { WeekStrip } from "@/components/workout/WeekStrip";
@@ -39,7 +40,8 @@ export function WorkoutTodayCard() {
   };
 
   return (
-    <Panel className="h-full">
+    <Panel className="art-card art-card--training h-full">
+      <Image src="/art/training-blades.png" alt="" aria-hidden width={440} height={440} unoptimized className="art-card__art" />
       <PanelHeader title="Entraînement prévu" icon={<Dumbbell />} />
       <WeekStrip className="mb-4" />
       {active ? (

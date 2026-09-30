@@ -14,7 +14,7 @@ export function WeekStrip({ className }: { className?: string }) {
   const start = weekStart(today);
   const byId = new Map((routines ?? []).map((r) => [r.id, r]));
   return (
-    <ol className={cn("grid grid-cols-7 gap-1.5", className)} aria-label="Semaine d'entraînement">
+    <ol className={cn("week-strip grid grid-cols-7 gap-1.5", className)} aria-label="Semaine d'entraînement">
       {WEEKDAYS_SHORT.map((wd, i) => {
         const date = addDays(start, i);
         const plannedId = profile?.schedule[i] ?? null;

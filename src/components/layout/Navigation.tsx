@@ -13,6 +13,13 @@ import { openSheet } from "@/lib/system/ui";
 import { titleFor } from "@/lib/domain/game";
 import { cn } from "@/lib/utils/cn";
 
+const NARROW_NAV_LABELS: Record<string, string> = {
+  "/": "Home",
+  "/nutrition": "Nutri",
+  "/workout": "Sport",
+  "/progress": "Suivi",
+};
+
 function SideLink({ item, active }: { item: NavItem; active: boolean }) {
   const Icon = item.icon;
   return (
@@ -98,9 +105,9 @@ export function TopBar() {
   const { profile, ledger } = useGame();
   return (
     <header className="sticky top-0 z-30 flex h-14 items-center justify-between gap-3 border-b border-line/60 bg-void/70 px-4 pt-[var(--safe-top)] backdrop-blur-xl lg:hidden" style={{ height: "calc(3.5rem + var(--safe-top))" }}>
-      <Link href="/" className="flex items-center gap-2" aria-label="ARISE — accueil">
+      <Link href="/" className="touch-target flex items-center gap-2" aria-label="ARISE — accueil">
         <AriseMark className="size-7" />
-        <span className="text-glow font-display text-[15px] font-bold tracking-[0.3em]">ARISE</span>
+        <span className="text-glow font-display text-[15px] font-bold tracking-[0.3em] max-[359px]:hidden">ARISE</span>
       </Link>
       <div className="flex items-center gap-1.5">
         {profile && (
@@ -109,9 +116,9 @@ export function TopBar() {
               <Flame className="size-3.5 text-warn" />
               {ledger.streak.current}
             </span>
-            <Link href="/status" className="flex items-center gap-1.5 rounded-full border border-line bg-deep/60 py-0.5 pr-2.5 pl-0.5" aria-label={`Niveau ${ledger.level.level}`}>
+            <Link href="/status" className="touch-target flex items-center gap-1.5 rounded-full border border-line bg-deep/60 py-0.5 pr-2.5 pl-0.5" aria-label={`Niveau ${ledger.level.level}`}>
               <RankBadge level={ledger.level.level} size="sm" />
-              <span className="font-display text-xs font-semibold text-ink">Niv. {ledger.level.level}</span>
+              <span className="font-display text-xs font-semibold whitespace-nowrap text-ink">Niv. {ledger.level.level}</span>
             </Link>
           </>
         )}
@@ -160,7 +167,10 @@ export function BottomNav() {
                   <motion.span layoutId="bottom-active" className="absolute top-0 h-0.5 w-8 rounded-full bg-arise shadow-[0_0_12px_#4da3ff]" transition={{ type: "spring", stiffness: 500, damping: 36 }} />
                 )}
                 <Icon className={cn("size-[22px]", active && "text-arise drop-shadow-[0_0_8px_rgb(77_163_255/0.8)]")} />
-                <span className="uppercase">{item.short ?? item.label}</span>
+                <span className="uppercase">
+                  <span className="min-[360px]:hidden">{NARROW_NAV_LABELS[item.href]}</span>
+                  <span className="max-[359px]:hidden">{item.short ?? item.label}</span>
+                </span>
               </Link>
             </li>
           );

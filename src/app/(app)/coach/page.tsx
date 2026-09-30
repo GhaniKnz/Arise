@@ -170,9 +170,9 @@ export default function CoachPage() {
             maxLength={2000}
             placeholder="Demande à ARISE AI…"
             aria-label="Message au coach"
-            className="max-h-32 min-h-10 flex-1 resize-none bg-transparent px-2 py-2 text-[15px] text-ink outline-none placeholder:text-ink-3"
+            className="max-h-32 min-h-10 flex-1 resize-none bg-transparent px-2 py-2 text-base text-ink outline-none placeholder:text-ink-3"
           />
-          <button type="submit" disabled={!input.trim() || streaming !== null} className="bg-arise-gradient flex size-10 shrink-0 items-center justify-center rounded-xl text-white transition active:scale-90 disabled:opacity-40" aria-label="Envoyer">
+          <button type="submit" disabled={!input.trim() || streaming !== null} className="touch-target bg-arise-gradient flex size-10 shrink-0 items-center justify-center rounded-xl text-white transition active:scale-90 disabled:opacity-40" aria-label="Envoyer">
             {streaming !== null ? <Loader2 className="size-5 animate-spin" /> : <SendHorizontal className="size-5" />}
           </button>
         </form>

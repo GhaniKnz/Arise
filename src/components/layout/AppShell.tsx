@@ -60,7 +60,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   if (!ready || !profile) return <Splash />;
 
   return (
-    <div className="relative min-h-dvh">
+    <div className="relative isolate min-h-dvh" data-effects={profile.effects}>
       <Background particles={profile.effects !== "reduced"} />
       <Sidebar />
       <div className="lg:pl-64">

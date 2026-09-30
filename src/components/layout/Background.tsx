@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react";
 
-/** Deep-space backdrop: radial auras, faint grid and slow rising particles. */
+/** Arcane gate backdrop with restrained motion behind the interface. */
 export function Background({ particles = true }: { particles?: boolean }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -17,19 +17,20 @@ export function Background({ particles = true }: { particles?: boolean }) {
 
     let w = 0;
     let h = 0;
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const mobile = window.matchMedia("(max-width: 640px)").matches;
+    const dpr = Math.min(window.devicePixelRatio || 1, mobile ? 1.5 : 2);
     const resize = () => {
       w = window.innerWidth;
       h = window.innerHeight;
-      canvas.width = w * dpr;
-      canvas.height = h * dpr;
+      canvas.width = Math.round(w * dpr);
+      canvas.height = Math.round(h * dpr);
       canvas.style.width = `${w}px`;
       canvas.style.height = `${h}px`;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     };
     resize();
 
-    const count = w < 640 ? 22 : 42;
+    const count = mobile ? 14 : 42;
     const dots = Array.from({ length: count }, () => ({
       x: Math.random() * w,
       y: Math.random() * h,
@@ -43,8 +44,12 @@ export function Background({ particles = true }: { particles?: boolean }) {
 
     let raf = 0;
     let running = true;
-    const step = () => {
+    let lastFrame = 0;
+    const step = (time: number) => {
       if (!running) return;
+      raf = requestAnimationFrame(step);
+      if (mobile && time - lastFrame < 32) return;
+      lastFrame = time;
       ctx.clearRect(0, 0, w, h);
       for (const d of dots) {
         d.y -= d.vy;
@@ -62,7 +67,6 @@ export function Background({ particles = true }: { particles?: boolean }) {
         ctx.arc(d.x, d.y, d.r, 0, Math.PI * 2);
         ctx.fill();
       }
-      raf = requestAnimationFrame(step);
     };
     raf = requestAnimationFrame(step);
 
@@ -84,9 +88,9 @@ export function Background({ particles = true }: { particles?: boolean }) {
   return (
     <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden" aria-hidden>
       <div className="absolute inset-0 bg-void" />
-      <div className="absolute -top-40 -left-40 size-[36rem] rounded-full bg-[radial-gradient(circle,rgb(59_130_246/0.18),transparent_65%)]" />
-      <div className="absolute top-1/3 -right-48 size-[40rem] rounded-full bg-[radial-gradient(circle,rgb(139_92_246/0.14),transparent_65%)]" />
-      <div className="absolute -bottom-56 left-1/4 size-[34rem] rounded-full bg-[radial-gradient(circle,rgb(34_211_238/0.07),transparent_65%)]" />
+      <div className="background-aurora absolute inset-0" />
+      <div className="background-gate absolute inset-0" />
+      <div className="background-veil absolute inset-0" />
       <div className="grid-bg absolute inset-0" />
       {particles && <canvas ref={canvasRef} className="absolute inset-0" />}
     </div>
