@@ -6,51 +6,16 @@ import { useState } from "react";
 import { useGame } from "@/components/providers/GameProvider";
 import { ExerciseIcon, RoutineIcon } from "@/components/icons/ExerciseIcon";
 import { Button } from "@/components/ui/Button";
-import { Field, NumberInput, Select, TextInput } from "@/components/ui/Fields";
 import { EmptyState } from "@/components/ui/Feedback";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Panel } from "@/components/ui/Panel";
-import { Sheet } from "@/components/ui/Sheet";
 import { routineColor, routineIcon } from "@/lib/data/routines";
 import { useExerciseLibrary, useRoutines } from "@/lib/db/hooks";
-import { logPastSession, startSession } from "@/lib/db/repos/workout";
+import { startSession } from "@/lib/db/repos/workout";
 import type { Routine } from "@/lib/db/types";
-import { addDays, weekdayIndex } from "@/lib/utils/date";
+import { weekdayIndex } from "@/lib/utils/date";
 import { cn } from "@/lib/utils/cn";
-
-function PastSessionSheet({ open, onClose, routines, onCreated }: { open: boolean; onClose: () => void; routines: Routine[]; onCreated: (id: string) => void }) {
-  const { today } = useGame();
-  const [date, setDate] = useState(addDays(today, -1));
-  const [routineId, setRoutineId] = useState<string>(routines[0]?.id ?? "");
-  const [duration, setDuration] = useState<number | undefined>(60);
-  const save = async () => {
-    const routine = routines.find((r) => r.id === routineId);
-    const s = await logPastSession({ date, routine, name: routine?.name ?? "Séance", type: routine?.type ?? "custom", durationMin: duration ?? 60 });
-    onCreated(s.id);
-  };
-  return (
-    <Sheet open={open} onClose={onClose} title="Séance passée" description="Pour une séance oubliée : les séries sont préremplies avec ta dernière performance." footer={<Button block size="lg" onClick={save}>Créer et ajuster</Button>}>
-      <div className="space-y-4">
-        <Field label="Date">
-          <TextInput type="date" value={date} max={today} onChange={(e) => setDate(e.target.value)} />
-        </Field>
-        <Field label="Programme">
-          <Select value={routineId} onChange={(e) => setRoutineId(e.target.value)}>
-            {routines.map((r) => (
-              <option key={r.id} value={r.id}>
-                {r.name}
-              </option>
-            ))}
-            <option value="">Séance libre (vide)</option>
-          </Select>
-        </Field>
-        <Field label="Durée">
-          <NumberInput value={duration} onChange={setDuration} step={5} min={5} max={300} unit="min" decimals={0} />
-        </Field>
-      </div>
-    </Sheet>
-  );
-}
+import { PastSessionSheet } from "./PastSessionSheet";
 
 export function SessionStarter({ onStarted, onPastCreated }: { onStarted: () => void; onPastCreated: (id: string) => void }) {
   const { profile, today } = useGame();
@@ -95,9 +60,9 @@ export function SessionStarter({ onStarted, onPastCreated }: { onStarted: () => 
                   {r.exercises.length} exercices · {r.exercises.reduce((a, e) => a + e.sets, 0)} séries
                 </p>
                 <div className="mt-2 flex gap-1">
-                  {r.exercises.slice(0, 7).map((e) => {
+                  {r.exercises.slice(0, 7).map((e, i) => {
                     const ex = byId(e.exerciseId);
-                    return ex ? <ExerciseIcon key={e.exerciseId} exercise={ex} className="h-8 w-6" /> : null;
+                    return ex ? <ExerciseIcon key={`${e.exerciseId}-${i}`} exercise={ex} className="h-8 w-6" /> : null;
                   })}
                 </div>
               </div>
@@ -116,7 +81,14 @@ export function SessionStarter({ onStarted, onPastCreated }: { onStarted: () => 
           </Button>
         </div>
       </div>
-      <PastSessionSheet open={past} onClose={() => setPast(false)} routines={routines ?? []} onCreated={(id) => { setPast(false); onPastCreated(id); }} />
+      <PastSessionSheet
+        open={past}
+        onClose={() => setPast(false)}
+        onCreated={(id) => {
+          setPast(false);
+          onPastCreated(id);
+        }}
+      />
     </div>
   );
 }

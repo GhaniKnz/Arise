@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, Layers, Lightbulb, NotebookPen, Pencil, Repeat, Target, TrendingUp, Trophy, Weight } from "lucide-react";
+import { ArrowLeft, Layers, Lightbulb, ListOrdered, NotebookPen, Pencil, Repeat, Target, TrendingUp, Trophy, Weight } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
@@ -25,7 +25,7 @@ export default function ExerciseDetailPage() {
   const { byId } = useExerciseLibrary();
   const ex = byId(decodeURIComponent(id));
   const data = useExerciseSets(ex?.id);
-  const [editing, setEditing] = useState(false);
+  const [editing, setEditing] = useState<false | "all" | "instructions">(false);
 
   const stats = useMemo(() => {
     if (!data?.sets.length) return null;
@@ -73,12 +73,12 @@ export default function ExerciseDetailPage() {
         title={ex.name}
         subtitle={ex.nameEn}
         action={
-          <Button variant="secondary" size="sm" onClick={() => setEditing(true)}>
+          <Button variant="secondary" size="sm" onClick={() => setEditing("all")}>
             <Pencil /> Modifier
           </Button>
         }
       />
-      <ExerciseEditorSheet open={editing} onClose={() => setEditing(false)} exercise={ex} />
+      <ExerciseEditorSheet open={!!editing} onClose={() => setEditing(false)} exercise={ex} focus={editing === "instructions" ? "instructions" : undefined} />
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-[20rem_1fr]">
         <div className="space-y-4">
@@ -123,9 +123,17 @@ export default function ExerciseDetailPage() {
               <p className="text-sm whitespace-pre-line text-ink-2">{ex.notes}</p>
             </Panel>
           )}
-          {ex.instructions.length > 0 && (
-            <Panel>
-              <PanelHeader title="Exécution" />
+          <Panel>
+            <PanelHeader
+              title="Comment le faire"
+              icon={<ListOrdered />}
+              action={
+                <Button variant="ghost" size="sm" onClick={() => setEditing("instructions")}>
+                  <Pencil /> {ex.instructions.length ? "Modifier" : "Ajouter"}
+                </Button>
+              }
+            />
+            {ex.instructions.length > 0 ? (
               <ol className="space-y-2 text-sm text-ink-2">
                 {ex.instructions.map((s, i) => (
                   <li key={i} className="flex gap-2.5">
@@ -134,13 +142,17 @@ export default function ExerciseDetailPage() {
                   </li>
                 ))}
               </ol>
-              {ex.tips?.map((t) => (
-                <p key={t} className="mt-3 flex gap-2 text-xs text-ink-3">
-                  <Lightbulb className="size-4 shrink-0 text-warn" /> {t}
-                </p>
-              ))}
-            </Panel>
-          )}
+            ) : (
+              <button type="button" onClick={() => setEditing("instructions")} className="w-full rounded-xl border border-dashed border-line-strong px-3 py-3 text-sm text-ink-3 transition hover:border-arise/50 hover:text-ink">
+                Aucune instruction. Ajoute tes étapes (placement, trajectoire, respiration…).
+              </button>
+            )}
+            {ex.tips?.map((t, i) => (
+              <p key={i} className="mt-3 flex gap-2 text-xs text-ink-3">
+                <Lightbulb className="size-4 shrink-0 text-warn" /> {t}
+              </p>
+            ))}
+          </Panel>
         </div>
 
         <div className="space-y-4">

@@ -24,14 +24,15 @@ export function blockSets<T extends Pick<WorkoutSet, "exerciseId" | "slot">>(set
 
 /**
  * Sets of the most recent finished session that contains the exercise — the
- * same occurrence (`slot`) when it existed, else the first one.
+ * same occurrence (`slot`) when it existed, else the first one. `before` (ISO)
+ * only looks at sessions started earlier (to backfill a forgotten session).
  */
-export async function lastPerformance(exerciseId: string, excludeSessionId?: string, slot = 0): Promise<WorkoutSet[]> {
+export async function lastPerformance(exerciseId: string, excludeSessionId?: string, slot = 0, before?: string): Promise<WorkoutSet[]> {
   const sets = await db.sets.where("exerciseId").equals(exerciseId).toArray();
   const done = sets.filter((s) => s.done && !s.warmup && s.sessionId !== excludeSessionId);
   if (!done.length) return [];
   const sessionIds = [...new Set(done.map((s) => s.sessionId))];
-  const sessions = (await db.sessions.bulkGet(sessionIds)).filter((s): s is Session => !!s && s.status === "done");
+  const sessions = (await db.sessions.bulkGet(sessionIds)).filter((s): s is Session => !!s && s.status === "done" && (!before || s.startedAt < before));
   if (!sessions.length) return [];
   const latest = sessions.sort((a, b) => b.startedAt.localeCompare(a.startedAt))[0];
   const inLatest = done.filter((s) => s.sessionId === latest.id);
@@ -43,9 +44,12 @@ export async function getActiveSession(): Promise<Session | undefined> {
   return db.sessions.where("status").equals("active").first();
 }
 
-/** Sets prefilled with the last performance. In a finished session they are created as done (a correction). */
-async function prefilledSets(sessionId: string, date: DayKey, ex: RoutineExercise, slot = 0, doneAt?: string): Promise<WorkoutSet[]> {
-  const prev = await lastPerformance(ex.exerciseId, sessionId, slot);
+/**
+ * Sets prefilled with the last performance. In a finished session they are
+ * created as done (a correction) and prefilled from the sessions before it.
+ */
+async function prefilledSets(sessionId: string, date: DayKey, ex: RoutineExercise, slot = 0, past?: { doneAt: string; before: string }): Promise<WorkoutSet[]> {
+  const prev = await lastPerformance(ex.exerciseId, sessionId, slot, past?.before);
   return Array.from({ length: ex.sets }, (_, i) => {
     const ref = prev[i] ?? prev.at(-1);
     return stamp<WorkoutSet>({
@@ -57,14 +61,15 @@ async function prefilledSets(sessionId: string, date: DayKey, ex: RoutineExercis
       weightKg: ref?.weightKg ?? 0,
       reps: ref?.reps ?? ex.repsMin,
       warmup: false,
-      done: !!doneAt,
-      ...(doneAt ? { completedAt: doneAt } : {}),
+      done: !!past,
+      ...(past ? { completedAt: past.doneAt } : {}),
     });
   });
 }
 
-/** Completion time used for sets added to an already finished session. */
-const doneAtOf = (session: Session) => (session.status === "done" ? (session.endedAt ?? session.startedAt) : undefined);
+/** Sets added to an already finished session are done at its end and prefilled from before it. */
+const pastOf = (session: Pick<Session, "status" | "startedAt" | "endedAt">) =>
+  session.status === "done" ? { doneAt: session.endedAt ?? session.startedAt, before: session.startedAt } : undefined;
 
 export async function startSession(opts: { routine?: Routine; name?: string; type?: RoutineType; date?: DayKey }): Promise<Session> {
   const active = await getActiveSession();
@@ -99,7 +104,7 @@ export async function startSession(opts: { routine?: Routine; name?: string; typ
 /** Appends an exercise block; the same exercise may be added several times. */
 export async function addExerciseToSession(session: Session, exerciseId: string, sets = 3, repsMin = 8) {
   const slot = session.exerciseIds.filter((id) => id === exerciseId).length;
-  const rows = await prefilledSets(session.id, session.date, { exerciseId, sets, repsMin, repsMax: repsMin + 4, restSec: 90 }, slot, doneAtOf(session));
+  const rows = await prefilledSets(session.id, session.date, { exerciseId, sets, repsMin, repsMax: repsMin + 4, restSec: 90 }, slot, pastOf(session));
   await db.transaction("rw", db.sessions, db.sets, async () => {
     await patch(db.sessions, session.id, { exerciseIds: [...session.exerciseIds, exerciseId] });
     await db.sets.bulkAdd(rows);
@@ -132,7 +137,7 @@ export async function renameSession(session: Session, name: string, alsoRoutine:
 export async function addSet(session: Session, exerciseId: string, warmup = false, slot = 0) {
   const existing = (await db.sets.where("sessionId").equals(session.id).toArray()).filter((s) => s.exerciseId === exerciseId && slotOf(s) === slot);
   const last = existing.sort((a, b) => a.order - b.order).at(-1);
-  const doneAt = doneAtOf(session);
+  const doneAt = pastOf(session)?.doneAt;
   return insert<WorkoutSet>(db.sets, {
     sessionId: session.id,
     exerciseId,
@@ -242,13 +247,16 @@ export async function deleteSession(sessionId: string) {
 }
 
 /** Records a session after the fact (no timer), prefilled with the last performance so only corrections are needed. */
-export async function logPastSession(opts: { date: DayKey; routine?: Routine; name: string; type: RoutineType; durationMin: number }) {
-  const start = new Date(`${opts.date}T18:00:00`);
+export async function logPastSession(opts: { date: DayKey; routine?: Routine; name: string; type: RoutineType; durationMin: number; startTime?: string }) {
+  const parsed = new Date(`${opts.date}T${opts.startTime || "18:00"}:00`);
+  const start = Number.isNaN(parsed.getTime()) ? new Date(`${opts.date}T18:00:00`) : parsed;
   const session = stamp<Session>({
     date: opts.date,
     routineId: opts.routine?.id,
     name: opts.name,
     type: opts.type,
+    color: opts.routine?.color,
+    icon: opts.routine?.icon,
     startedAt: start.toISOString(),
     endedAt: new Date(start.getTime() + opts.durationMin * 60_000).toISOString(),
     status: "done",
@@ -259,7 +267,7 @@ export async function logPastSession(opts: { date: DayKey; routine?: Routine; na
   for (const ex of opts.routine?.exercises ?? []) {
     const slot = seen.get(ex.exerciseId) ?? 0;
     seen.set(ex.exerciseId, slot + 1);
-    sets.push(...(await prefilledSets(session.id, opts.date, ex, slot, session.endedAt)));
+    sets.push(...(await prefilledSets(session.id, opts.date, ex, slot, pastOf(session))));
   }
   await db.transaction("rw", db.sessions, db.sets, async () => {
     await db.sessions.add(session);

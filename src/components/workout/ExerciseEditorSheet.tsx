@@ -1,10 +1,11 @@
 "use client";
 
-import { RotateCcw, Save, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { ChevronDown, Lightbulb, ListOrdered, RotateCcw, Save, Trash2 } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { EquipmentIcon } from "@/components/icons/EquipmentIcon";
 import { ExerciseIcon } from "@/components/icons/ExerciseIcon";
 import { MuscleIcon } from "@/components/icons/MuscleIcon";
+import { suggestPoses } from "@/components/icons/PoseIcon";
 import { Button } from "@/components/ui/Button";
 import { Field, NumberInput, Segmented, TextArea, TextInput, Toggle } from "@/components/ui/Fields";
 import { Sheet } from "@/components/ui/Sheet";
@@ -17,6 +18,7 @@ import { useResetOnOpen } from "@/lib/hooks/useResetOnOpen";
 import { toast } from "@/lib/system/store";
 import { cn } from "@/lib/utils/cn";
 import { ExerciseIconPicker } from "./IconPicker";
+import { StepsEditor } from "./StepsEditor";
 
 const blank = (): Exercise => ({
   id: newExerciseId(),
@@ -37,18 +39,52 @@ interface Props {
   /** Exercise to edit; omit to create a new one. */
   exercise?: Exercise;
   onSaved?: (e: Exercise) => void;
+  /** Scrolls to a section when the sheet opens. */
+  focus?: "instructions";
 }
 
-/** Create or personalize an exercise: name, pictogram, muscles, equipment, rest, notes. */
-export function ExerciseEditorSheet({ open, onClose, exercise, onSaved }: Props) {
+const cleanList = (xs: string[] | undefined) => (xs ?? []).map((s) => s.trim()).filter(Boolean);
+const sameList = (a: string[] | undefined, b: string[] | undefined) => cleanList(a).join("\n") === cleanList(b).join("\n");
+
+/** Create or personalize an exercise: name, pictogram, muscles, equipment, how-to steps, tips, rest, notes. */
+export function ExerciseEditorSheet({ open, onClose, exercise, onSaved, focus }: Props) {
   const { customized } = useExerciseLibrary();
   const [draft, setDraft] = useState<Exercise>(blank);
   const [busy, setBusy] = useState(false);
-  useResetOnOpen(open, () => setDraft(exercise ? { ...exercise, secondary: [...exercise.secondary] } : blank()), exercise?.id);
+  /** A new exercise follows the name's suggested movement until an icon is picked by hand. */
+  const [iconTouched, setIconTouched] = useState(false);
+  const [showIcons, setShowIcons] = useState(false);
+  const howToRef = useRef<HTMLDivElement>(null);
+  useResetOnOpen(
+    open,
+    () => {
+      setDraft(exercise ? { ...exercise, secondary: [...exercise.secondary], instructions: [...exercise.instructions], tips: exercise.tips ? [...exercise.tips] : undefined } : blank());
+      setIconTouched(!!exercise);
+      setShowIcons(!exercise);
+    },
+    exercise?.id,
+  );
+
+  useEffect(() => {
+    if (!open || focus !== "instructions") return;
+    const t = setTimeout(() => howToRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 350);
+    return () => clearTimeout(t);
+  }, [open, focus]);
 
   const isNew = !exercise;
   const builtIn = !!exercise && isBuiltInExercise(exercise.id);
+  const original = builtIn ? EXERCISE_BY_ID.get(exercise.id) : undefined;
   const set = <K extends keyof Exercise>(k: K, v: Exercise[K]) => setDraft((d) => ({ ...d, [k]: v }));
+  const setName = (name: string) =>
+    setDraft((d) => {
+      if (iconTouched) return { ...d, name };
+      const pose = suggestPoses(name)[0];
+      return { ...d, name, icon: pose ? `p:${pose}` : undefined };
+    });
+  const pickIcon = (icon: string | undefined) => {
+    setIconTouched(true);
+    set("icon", icon);
+  };
   const toggleSecondary = (m: Muscle) =>
     setDraft((d) => ({ ...d, secondary: d.secondary.includes(m) ? d.secondary.filter((x) => x !== m) : [...d.secondary, m].filter((x) => x !== d.primary) }));
 
@@ -60,7 +96,15 @@ export function ExerciseEditorSheet({ open, onClose, exercise, onSaved }: Props)
     }
     setBusy(true);
     try {
-      const row: Exercise = { ...draft, name, notes: draft.notes?.trim() || undefined, secondary: draft.secondary.filter((m) => m !== draft.primary) };
+      const tips = cleanList(draft.tips);
+      const row: Exercise = {
+        ...draft,
+        name,
+        notes: draft.notes?.trim() || undefined,
+        secondary: draft.secondary.filter((m) => m !== draft.primary),
+        instructions: cleanList(draft.instructions),
+        tips: tips.length ? tips : undefined,
+      };
       await saveExercise(row);
       toast({ tone: "success", title: isNew ? "Exercice créé" : "Exercice mis à jour", message: name });
       onSaved?.(row);
@@ -111,15 +155,65 @@ export function ExerciseEditorSheet({ open, onClose, exercise, onSaved }: Props)
             <ExerciseIcon exercise={draft} className="h-14 w-10" />
           </span>
           <div className="min-w-0 flex-1">
-            <Field label="Nom">
-              <TextInput value={draft.name} onChange={(e) => set("name", e.target.value)} placeholder="Ex. Développé Hammer Strength" />
+            <Field label="Nom" htmlFor="exercise-name">
+              <TextInput id="exercise-name" value={draft.name} onChange={(e) => setName(e.target.value)} placeholder="Ex. Développé Hammer Strength" />
             </Field>
           </div>
         </div>
 
         <div>
-          <p className="mb-2 text-[13px] font-medium text-ink-2">Icône</p>
-          <ExerciseIconPicker value={draft.icon} primary={draft.primary} secondary={draft.secondary} onChange={(v) => set("icon", v)} />
+          <button
+            type="button"
+            onClick={() => setShowIcons((v) => !v)}
+            aria-expanded={showIcons}
+            className="mb-2 flex w-full items-center gap-2 text-left text-[13px] font-medium text-ink-2"
+          >
+            Icône
+            {isNew && !iconTouched && draft.icon && <span className="rounded-full bg-arise/15 px-2 py-0.5 text-[10px] font-semibold text-arise">choisie d&apos;après le nom</span>}
+            <span className="ml-auto flex items-center gap-1 text-xs text-arise">
+              {showIcons ? "Masquer" : "Changer l'icône"} <ChevronDown className={cn("size-4 transition", showIcons && "rotate-180")} />
+            </span>
+          </button>
+          {showIcons && <ExerciseIconPicker value={draft.icon} name={draft.name} primary={draft.primary} secondary={draft.secondary} onChange={pickIcon} />}
+        </div>
+
+        <div ref={howToRef} className="scroll-mt-4 space-y-4 rounded-2xl border border-line bg-white/[0.015] p-3">
+          <div>
+            <p className="mb-1 flex items-center gap-2 text-[13px] font-medium text-ink">
+              <ListOrdered className="size-4 text-arise" /> Comment le faire
+            </p>
+            <p className="mb-2.5 text-xs text-ink-3">Une étape par ligne, dans l&apos;ordre. Colle un texte à plusieurs lignes : chaque ligne devient une étape.</p>
+            <StepsEditor
+              items={draft.instructions}
+              onChange={(v) => set("instructions", v)}
+              addLabel="Ajouter une étape"
+              itemLabel="Étape"
+              placeholder="Ex. Omoplates serrées, pieds à plat au sol"
+            />
+          </div>
+          <div>
+            <p className="mb-2 flex items-center gap-2 text-[13px] font-medium text-ink">
+              <Lightbulb className="size-4 text-warn" /> Conseils
+            </p>
+            <StepsEditor
+              items={draft.tips ?? []}
+              onChange={(v) => set("tips", v)}
+              numbered={false}
+              marker={<Lightbulb className="size-3.5" />}
+              addLabel="Ajouter un conseil"
+              itemLabel="Conseil"
+              placeholder="Ex. Descends en 2 secondes, remonte explosif"
+            />
+          </div>
+          {original && (!sameList(draft.instructions, original.instructions) || !sameList(draft.tips, original.tips)) && (
+            <button
+              type="button"
+              onClick={() => setDraft((d) => ({ ...d, instructions: [...original.instructions], tips: original.tips ? [...original.tips] : undefined }))}
+              className="flex items-center gap-1.5 text-xs text-ink-3 hover:text-ink"
+            >
+              <RotateCcw className="size-3.5" /> Rétablir les instructions d&apos;origine
+            </button>
+          )}
         </div>
 
         <div>

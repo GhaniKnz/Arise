@@ -215,7 +215,7 @@ export interface Exercise {
   restSec: number;
   /**
    * Pictogram: undefined = muscle silhouette (auto view), `view:front|back|both`,
-   * `eq:<equipment>` or `g:<glyph key>`.
+   * `p:<movement>` (silhouette in action), `m:<muscle>`, `eq:<equipment>` or `g:<glyph key>`.
    */
   icon?: string;
   /** Personal notes (setup, machine settings…). */
@@ -241,7 +241,7 @@ export interface Routine extends BaseRow {
   notes?: string;
   /** Accent color (hex); defaults to the type color. */
   color?: string;
-  /** `m:<muscle>` silhouette or `g:<glyph key>`; defaults per type. */
+  /** `p:<movement>`, `m:<muscle>` silhouette or `g:<glyph key>`; defaults per type. */
   icon?: string;
 }
 

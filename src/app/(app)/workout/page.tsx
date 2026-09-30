@@ -1,6 +1,6 @@
 "use client";
 
-import { BookOpen, CalendarDays, CalendarRange, ChevronRight, Dumbbell, HeartPulse, Layers, Pencil, Play, Plus, Trophy, Weight } from "lucide-react";
+import { BookOpen, CalendarDays, CalendarPlus, CalendarRange, ChevronRight, Dumbbell, HeartPulse, History, Layers, Pencil, Play, Plus, Trophy, Weight } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
@@ -8,6 +8,8 @@ import { useGame } from "@/components/providers/GameProvider";
 import { ExerciseIcon, RoutineIcon } from "@/components/icons/ExerciseIcon";
 import { MuscleIcon } from "@/components/icons/MuscleIcon";
 import { CARDIO_LABEL } from "@/components/quick/CardioSheet";
+import { MissedDays } from "@/components/workout/MissedDays";
+import { PastSessionSheet } from "@/components/workout/PastSessionSheet";
 import { SplitSheet } from "@/components/workout/SplitSheet";
 import { WeekStrip } from "@/components/workout/WeekStrip";
 import { Button, LinkButton } from "@/components/ui/Button";
@@ -24,7 +26,7 @@ import type { Routine } from "@/lib/db/types";
 import { sessionMinutes } from "@/lib/domain/daily";
 import { setsPerMuscle, TRACKED_MUSCLES, WEEKLY_SET_TARGET } from "@/lib/domain/volume";
 import { openSheet } from "@/lib/system/ui";
-import { addDays, formatDay, monthStart, weekStart, WEEKDAYS_LONG, WEEKDAYS_SHORT } from "@/lib/utils/date";
+import { addDays, formatDay, monthStart, weekStart, WEEKDAYS_LONG, WEEKDAYS_SHORT, type DayKey } from "@/lib/utils/date";
 import { cn } from "@/lib/utils/cn";
 import { fmtDuration, fmtInt } from "@/lib/utils/format";
 
@@ -35,6 +37,7 @@ export default function WorkoutPage() {
   const { byId } = useExerciseLibrary();
   const router = useRouter();
   const [splitOpen, setSplitOpen] = useState(false);
+  const [adding, setAdding] = useState<{ date?: DayKey } | null>(null);
 
   const week = weekStart(today);
   const month = monthStart(today);
@@ -253,11 +256,12 @@ export default function WorkoutPage() {
             title="Historique"
             icon={<Trophy />}
             action={
-              <Link href="/calendar" className="text-xs text-ink-3 hover:text-ink">
-                Calendrier →
-              </Link>
+              <Button size="sm" variant="secondary" onClick={() => setAdding({})}>
+                <CalendarPlus /> Séance passée
+              </Button>
             }
           />
+          <MissedDays max={2} onAdd={(date) => setAdding({ date })} />
           {done.length ? (
             <ul className="divide-y divide-line/60">
               {done.slice(0, 8).map((s) => {
@@ -289,6 +293,14 @@ export default function WorkoutPage() {
           ) : (
             <EmptyState icon={<Dumbbell />} title="Aucune séance enregistrée" action={<LinkButton href="/session" size="sm">Commencer ma première séance</LinkButton>} />
           )}
+          <div className="mt-2 flex items-center justify-between gap-2 border-t border-line/60 pt-2.5 text-xs">
+            <Link href="/workout/history" className="flex items-center gap-1 font-medium text-arise hover:underline">
+              <History className="size-3.5" /> Tout l&apos;historique{done.length > 8 ? ` (${done.length})` : ""}
+            </Link>
+            <Link href="/calendar" className="text-ink-3 hover:text-ink">
+              Calendrier →
+            </Link>
+          </div>
         </Panel>
       </div>
 
@@ -341,6 +353,15 @@ export default function WorkoutPage() {
         </Link>
       </div>
       <SplitSheet open={splitOpen} onClose={() => setSplitOpen(false)} />
+      <PastSessionSheet
+        open={adding !== null}
+        initialDate={adding?.date}
+        onClose={() => setAdding(null)}
+        onCreated={(id) => {
+          setAdding(null);
+          router.push(`/workout/history/${id}?edit=1`);
+        }}
+      />
     </>
   );
 }

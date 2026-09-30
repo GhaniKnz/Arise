@@ -95,6 +95,29 @@ await step("edit past session", async () => {
   await page.getByRole("button", { name: "Modifier", exact: true }).waitFor();
 });
 
+await step("add forgotten session from history", async () => {
+  await page.goto(`${base}/workout/history`, { waitUntil: "networkidle" });
+  await page.getByRole("button", { name: "Séance passée" }).first().click();
+  await page.getByRole("button", { name: "Avant-hier" }).click();
+  await page.getByRole("button", { name: /^Séance libre/ }).click();
+  await page.getByLabel("Nom", { exact: true }).fill("Séance oubliée");
+  await page.getByRole("button", { name: /Créer et remplir/ }).click();
+  await page.waitForURL(/\/workout\/history\/.+\?edit=1/);
+  await page.getByRole("heading", { name: "Séance oubliée" }).waitFor();
+  await page.getByText("Mode édition").waitFor();
+});
+
+await step("exercise instructions", async () => {
+  await page.goto(`${base}/workout/exercises`, { waitUntil: "networkidle" });
+  await page.getByRole("button", { name: /Créer/ }).first().click();
+  await page.getByLabel("Nom", { exact: true }).fill("Squat test e2e");
+  await page.getByRole("button", { name: "Ajouter une étape" }).click();
+  await page.getByLabel("Étape 1", { exact: true }).fill("Pieds largeur d'épaules");
+  await page.getByRole("button", { name: "Enregistrer" }).click();
+  await page.waitForURL(/\/workout\/exercises\/.+/);
+  await page.locator("#main").getByText("Pieds largeur d'épaules").waitFor();
+});
+
 await step("pages render", async () => {
   for (const r of ["/workout", "/progress", "/progress?tab=photos", "/calendar", "/analytics", "/status", "/knowledge", "/report", "/coach", "/settings", "/workout/exercises", "/nutrition/library", "/nutrition/barcode"]) {
     await page.goto(`${base}${r}`, { waitUntil: "networkidle" });

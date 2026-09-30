@@ -1,6 +1,6 @@
 "use client";
 
-import { Flame, History, Info, Minus, NotebookPen, Pencil, Plus, Trash2, TrendingUp } from "lucide-react";
+import { ChevronDown, Flame, History, Info, Lightbulb, ListOrdered, Minus, NotebookPen, Pencil, Plus, Trash2, TrendingUp } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { EquipmentIcon } from "@/components/icons/EquipmentIcon";
@@ -141,6 +141,30 @@ export function ExerciseBlock({ session, exercise, sets, history, repRange, onSe
         <p className="mt-2 flex items-start gap-2 rounded-xl border border-violet/25 bg-violet/[0.06] px-3 py-2 text-[13px] text-ink-2">
           <NotebookPen className="mt-0.5 size-4 shrink-0 text-violet-2" /> {exercise.notes}
         </p>
+      )}
+      {exercise.instructions.length > 0 && (
+        <details className="group mt-2 rounded-xl border border-line bg-white/[0.02] px-3 py-2 text-[13px]">
+          <summary className="flex cursor-pointer list-none items-center gap-2 text-ink-2 [&::-webkit-details-marker]:hidden">
+            <ListOrdered className="size-4 shrink-0 text-arise" /> Comment le faire
+            <span className="text-xs text-ink-3">
+              · {exercise.instructions.length} étape{exercise.instructions.length > 1 ? "s" : ""}
+            </span>
+            <ChevronDown className="ml-auto size-4 shrink-0 text-ink-3 transition group-open:rotate-180" />
+          </summary>
+          <ol className="mt-2 space-y-1.5 text-ink-2">
+            {exercise.instructions.map((s, i) => (
+              <li key={i} className="flex gap-2">
+                <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-arise/15 text-[10px] font-bold text-arise">{i + 1}</span>
+                {s}
+              </li>
+            ))}
+          </ol>
+          {exercise.tips?.map((t, i) => (
+            <p key={i} className="mt-2 flex gap-2 text-xs text-ink-3">
+              <Lightbulb className="size-3.5 shrink-0 text-warn" /> {t}
+            </p>
+          ))}
+        </details>
       )}
 
       <div className="mt-3 space-y-1.5 rounded-xl border border-line bg-white/[0.02] px-3 py-2 text-[13px]">
