@@ -12,12 +12,15 @@ export interface Toast {
   title: string;
   message?: string;
   xp?: number;
+  /** Optional one-tap action (e.g. undo). */
+  action?: { label: string; onClick: () => void };
 }
 
 export type Overlay =
   | { kind: "levelup"; level: number; rank: Rank; title: string; gains: Partial<Record<StatKey, number>> }
   | { kind: "quests"; xp: number }
-  | { kind: "pr"; exercise: string; weightKg: number; reps: number; kinds: PRKind[]; weighted: boolean };
+  | { kind: "pr"; exercise: string; weightKg: number; reps: number; kinds: PRKind[]; weighted: boolean; beat?: string; xp?: number }
+  | { kind: "boss"; name: string; atKg: number; xp: number; next?: string };
 
 interface State {
   toasts: Toast[];

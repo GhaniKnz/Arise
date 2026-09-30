@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronLeft, ChevronRight, Dumbbell, Flame, Footprints, HeartPulse, Moon, Target } from "lucide-react";
+import { CalendarCheck, ChevronLeft, ChevronRight, Dumbbell, Flame, Footprints, Gauge, HeartPulse, Moon, Target } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useGame } from "@/components/providers/GameProvider";
 import { DaySheet } from "@/components/calendar/DaySheet";
@@ -114,10 +114,10 @@ export default function CalendarPage() {
 
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-2">
-            <StatTile label="Séances ce mois" value={stats.sessions} hint={stats.planned ? `${stats.plannedDone}/${stats.planned} prévues` : undefined} accent="#34d399" />
-            <StatTile label="Adhérence" value={`${stats.adherence} %`} hint="jours validés (≥ 70)" accent="#4da3ff" />
-            <StatTile label="Score moyen" value={stats.avgScore} hint="jours suivis" />
-            <StatTile label="Calories OK" value={`${stats.kcalDays} j`} hint={`pas atteints : ${stats.stepDays} j`} />
+            <StatTile label="Séances ce mois" icon={<Dumbbell />} value={stats.sessions} hint={stats.planned ? `${stats.plannedDone}/${stats.planned} prévues` : undefined} accent="#34d399" />
+            <StatTile label="Adhérence" icon={<CalendarCheck />} value={`${stats.adherence} %`} hint="jours validés (≥ 70)" accent="#4da3ff" />
+            <StatTile label="Score moyen" icon={<Gauge />} accent="var(--color-violet-2)" value={stats.avgScore} hint="jours suivis" />
+            <StatTile label="Calories OK" icon={<Flame />} accent="var(--color-warn)" value={`${stats.kcalDays} j`} hint={`pas atteints : ${stats.stepDays} j`} />
           </div>
           <Panel>
             <PanelHeader title="Séries de jours" icon={<Flame />} />

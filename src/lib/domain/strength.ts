@@ -130,8 +130,29 @@ export function progressionHint(
   if (!last.length) return null;
   const top = last.reduce((a, b) => (e1rm(b.weightKg, b.reps) > e1rm(a.weightKg, a.reps) ? b : a));
   const allAtTop = last.every((s) => s.reps >= repsMax && s.weightKg >= top.weightKg);
+  const kg = (w: number) => `${String(w).replace(".", ",")} kg`;
   if (allAtTop && top.weightKg > 0) {
-    return { weightKg: top.weightKg + increment, reps: repsMin, text: `Toutes les séries à ${repsMax} reps : passe à ${top.weightKg + increment} kg` };
+    return { weightKg: top.weightKg + increment, reps: repsMin, text: `Toutes les séries à ${repsMax} reps : passe à ${kg(top.weightKg + increment)}` };
   }
-  return { weightKg: top.weightKg, reps: Math.min(top.reps + 1, repsMax), text: `Vise ${Math.min(top.reps + 1, repsMax)} reps à ${top.weightKg} kg` };
+  if (allAtTop) return { weightKg: 0, reps: repsMax + 1, text: `Toutes les séries à ${repsMax} reps : ajoute un peu de lest ou vise ${repsMax + 1} reps` };
+  const reps = Math.min(top.reps + 1, repsMax);
+  return { weightKg: top.weightKg, reps, text: top.weightKg > 0 ? `Vise ${reps} reps à ${kg(top.weightKg)}` : `Vise ${reps} reps` };
+}
+
+export interface SetGain {
+  kind: "weight" | "reps";
+  amount: number;
+}
+
+type Load = Pick<WorkoutSet, "weightKg" | "reps">;
+
+/**
+ * Progress of a set against the same set of the previous session:
+ * more load, or more reps at the same load. Null when not better.
+ */
+export function gainVsPrevious(prev: Load | undefined, cur: Load, weighted = true): SetGain | null {
+  if (!prev || cur.reps <= 0) return null;
+  if ((weighted || prev.weightKg > 0 || cur.weightKg > 0) && cur.weightKg > prev.weightKg) return { kind: "weight", amount: Math.round((cur.weightKg - prev.weightKg) * 100) / 100 };
+  if (cur.weightKg === prev.weightKg && cur.reps > prev.reps) return { kind: "reps", amount: cur.reps - prev.reps };
+  return null;
 }

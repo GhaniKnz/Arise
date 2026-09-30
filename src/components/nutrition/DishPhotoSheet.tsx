@@ -10,7 +10,7 @@ import { ErrorBox } from "@/components/ui/Feedback";
 import { Sheet } from "@/components/ui/Sheet";
 import { ApiError } from "@/lib/api";
 import { photoPart, type DishPart } from "@/lib/db/repos/dishDraft";
-import { analysisToIngredients, analyzeMealPhoto, photoThumb } from "@/lib/food/mealPhoto";
+import { analysisToItems, analyzeMealPhoto, photoItemsToIngredients, photoThumb } from "@/lib/food/mealPhoto";
 import { useBlobUrl } from "@/lib/hooks/useBlobUrl";
 import { useResetOnOpen } from "@/lib/hooks/useResetOnOpen";
 import { cue } from "@/lib/system/feedback";
@@ -37,14 +37,15 @@ export function DishPhotoSheet({ open, onClose, onAdd }: { open: boolean; onClos
     setLoading(true);
     setError(null);
     try {
-      const [analysis, thumb] = await Promise.all([analyzeMealPhoto(file, note), photoThumb(file).catch(() => undefined)]);
-      const items = analysisToIngredients(analysis);
+      const [{ analysis, mem }, thumb] = await Promise.all([analyzeMealPhoto(file, note), photoThumb(file).catch(() => undefined)]);
+      const items = photoItemsToIngredients(analysisToItems(analysis, mem));
+      const knownMeal = analysis.known_meal_id ? mem?.mealsById.get(analysis.known_meal_id) : undefined;
       if (!analysis.is_food || !items.length) {
         setError("Aucun aliment détecté sur cette photo. Essaie avec l'assiette bien visible, vue de dessus.");
         return;
       }
       cue("quest");
-      onAdd(photoPart(analysis.meal_name, items, thumb));
+      onAdd(photoPart(knownMeal?.name ?? analysis.meal_name, items, thumb));
       onClose();
     } catch (e) {
       setError(e instanceof ApiError ? e.message : "Analyse impossible.");

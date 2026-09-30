@@ -71,7 +71,7 @@ export function CustomFoodSheet({
       return;
     }
     const payload = {
-      id: food?.source === "custom" ? food.id : undefined,
+      id: food?.source === "custom" || food?.source === "ai" ? food.id : undefined,
       name: d.name.trim(),
       brand: d.brand.trim() || undefined,
       category: d.category,

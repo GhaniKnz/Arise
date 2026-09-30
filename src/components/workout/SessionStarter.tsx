@@ -4,65 +4,18 @@ import { CalendarPlus, Dumbbell, Play, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { useGame } from "@/components/providers/GameProvider";
-import { MuscleIcon } from "@/components/icons/MuscleIcon";
+import { ExerciseIcon, RoutineIcon } from "@/components/icons/ExerciseIcon";
 import { Button } from "@/components/ui/Button";
-import { Field, NumberInput, Select, TextInput } from "@/components/ui/Fields";
 import { EmptyState } from "@/components/ui/Feedback";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Panel } from "@/components/ui/Panel";
-import { Sheet } from "@/components/ui/Sheet";
-import { ROUTINE_TYPE_META } from "@/lib/data/routines";
+import { routineColor, routineIcon } from "@/lib/data/routines";
 import { useExerciseLibrary, useRoutines } from "@/lib/db/hooks";
-import { db } from "@/lib/db";
-import { stamp } from "@/lib/db/repo";
-import { lastPerformance, logPastSession, startSession } from "@/lib/db/repos/workout";
-import type { Routine, WorkoutSet } from "@/lib/db/types";
-import { addDays, weekdayIndex } from "@/lib/utils/date";
+import { startSession } from "@/lib/db/repos/workout";
+import type { Routine } from "@/lib/db/types";
+import { weekdayIndex } from "@/lib/utils/date";
 import { cn } from "@/lib/utils/cn";
-
-function PastSessionSheet({ open, onClose, routines, onCreated }: { open: boolean; onClose: () => void; routines: Routine[]; onCreated: (id: string) => void }) {
-  const { today } = useGame();
-  const [date, setDate] = useState(addDays(today, -1));
-  const [routineId, setRoutineId] = useState<string>(routines[0]?.id ?? "");
-  const [duration, setDuration] = useState<number | undefined>(60);
-  const save = async () => {
-    const routine = routines.find((r) => r.id === routineId);
-    const s = await logPastSession({ date, routine, name: routine?.name ?? "Séance", type: routine?.type ?? "custom", durationMin: duration ?? 60 });
-    // Prefill with last performance so only corrections are needed.
-    const rows: WorkoutSet[] = [];
-    for (const ex of routine?.exercises ?? []) {
-      const prev = await lastPerformance(ex.exerciseId, s.id);
-      for (let i = 0; i < ex.sets; i++) {
-        const ref = prev[i] ?? prev.at(-1);
-        rows.push(stamp<WorkoutSet>({ sessionId: s.id, exerciseId: ex.exerciseId, date, order: i, weightKg: ref?.weightKg ?? 0, reps: ref?.reps ?? ex.repsMin, warmup: false, done: true, completedAt: new Date(`${date}T18:${String(10 + i).padStart(2, "0")}:00`).toISOString() }));
-      }
-    }
-    if (rows.length) await db.sets.bulkAdd(rows);
-    onCreated(s.id);
-  };
-  return (
-    <Sheet open={open} onClose={onClose} title="Séance passée" description="Pour une séance oubliée : les séries sont préremplies avec ta dernière performance." footer={<Button block size="lg" onClick={save}>Créer et ajuster</Button>}>
-      <div className="space-y-4">
-        <Field label="Date">
-          <TextInput type="date" value={date} max={today} onChange={(e) => setDate(e.target.value)} />
-        </Field>
-        <Field label="Programme">
-          <Select value={routineId} onChange={(e) => setRoutineId(e.target.value)}>
-            {routines.map((r) => (
-              <option key={r.id} value={r.id}>
-                {r.name}
-              </option>
-            ))}
-            <option value="">Séance libre (vide)</option>
-          </Select>
-        </Field>
-        <Field label="Durée">
-          <NumberInput value={duration} onChange={setDuration} step={5} min={5} max={300} unit="min" decimals={0} />
-        </Field>
-      </div>
-    </Sheet>
-  );
-}
+import { PastSessionSheet } from "./PastSessionSheet";
 
 export function SessionStarter({ onStarted, onPastCreated }: { onStarted: () => void; onPastCreated: (id: string) => void }) {
   const { profile, today } = useGame();
@@ -92,22 +45,24 @@ export function SessionStarter({ onStarted, onPastCreated }: { onStarted: () => 
         )}
         {sorted.map((r) => {
           const planned = r.id === plannedId;
-          const meta = ROUTINE_TYPE_META[r.type];
+          const color = routineColor(r);
           return (
             <Panel key={r.id} glow={planned} className={cn("flex items-center gap-4", planned && "hud")}>
+              <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl border bg-void/50" style={{ borderColor: `color-mix(in srgb, ${color} 60%, transparent)`, boxShadow: `0 0 18px -6px ${color}` }}>
+                <RoutineIcon icon={routineIcon(r)} color={color} className="size-8" />
+              </span>
               <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2">
-                  <span className="size-2.5 rounded-full" style={{ background: meta.color, boxShadow: `0 0 8px ${meta.color}` }} />
-                  <p className="font-display text-lg font-bold text-ink">{r.name}</p>
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="truncate font-display text-lg font-bold text-ink">{r.name}</p>
                   {planned && <span className="rounded-full bg-arise/15 px-2 py-0.5 text-[10px] font-semibold text-arise uppercase">Prévue aujourd&apos;hui</span>}
                 </div>
                 <p className="mt-0.5 text-xs text-ink-3">
                   {r.exercises.length} exercices · {r.exercises.reduce((a, e) => a + e.sets, 0)} séries
                 </p>
                 <div className="mt-2 flex gap-1">
-                  {r.exercises.slice(0, 7).map((e) => {
+                  {r.exercises.slice(0, 7).map((e, i) => {
                     const ex = byId(e.exerciseId);
-                    return ex ? <MuscleIcon key={e.exerciseId} primary={ex.primary} secondary={ex.secondary} className="h-8 w-6" title={ex.name} /> : null;
+                    return ex ? <ExerciseIcon key={`${e.exerciseId}-${i}`} exercise={ex} className="h-8 w-6" /> : null;
                   })}
                 </div>
               </div>
@@ -126,7 +81,14 @@ export function SessionStarter({ onStarted, onPastCreated }: { onStarted: () => 
           </Button>
         </div>
       </div>
-      <PastSessionSheet open={past} onClose={() => setPast(false)} routines={routines ?? []} onCreated={(id) => { setPast(false); onPastCreated(id); }} />
+      <PastSessionSheet
+        open={past}
+        onClose={() => setPast(false)}
+        onCreated={(id) => {
+          setPast(false);
+          onPastCreated(id);
+        }}
+      />
     </div>
   );
 }

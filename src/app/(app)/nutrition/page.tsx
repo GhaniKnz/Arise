@@ -1,6 +1,6 @@
 "use client";
 
-import { BookOpen, Camera, Plus, ScanBarcode, UtensilsCrossed } from "lucide-react";
+import { BookOpen, Camera, ChefHat, Plus, ScanBarcode, UtensilsCrossed } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Suspense, useMemo, useState } from "react";
@@ -94,20 +94,22 @@ function NutritionJournal() {
             </div>
           </Panel>
 
-          <div className="grid grid-cols-4 gap-2">
+          <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-6 sm:gap-2">
             {[
               { href: `/nutrition/add?date=${date}`, label: "Ajouter", icon: Plus, primary: true },
               { href: `/nutrition/compose?date=${date}`, label: "Composer", icon: UtensilsCrossed },
               { href: `/nutrition/scan?date=${date}`, label: "Photo IA", icon: Camera },
-              { href: `/nutrition/barcode?date=${date}`, label: "Code-barres", icon: ScanBarcode },
+              { href: `/nutrition/barcode?date=${date}`, label: "Scanner", icon: ScanBarcode },
+              { href: "/nutrition/recipes", label: "Recettes", icon: ChefHat },
+              { href: "/nutrition/library", label: "Plats", icon: BookOpen },
             ].map((a) => (
               <Link
                 key={a.href}
                 href={a.href}
-                className={`flex flex-col items-center gap-1.5 rounded-2xl border px-1 py-3 text-center text-[12px] font-medium transition active:scale-95 ${a.primary ? "bg-arise-gradient border-transparent text-white shadow-glow" : "border-line bg-deep/60 text-ink-2 hover:border-line-strong"}`}
+                className={`flex min-w-0 flex-col items-center gap-1.5 rounded-2xl border px-0.5 py-3 text-center text-[11px] font-medium transition active:scale-95 sm:text-[12px] ${a.primary ? "bg-arise-gradient border-transparent text-white shadow-glow" : "border-line bg-deep/60 text-ink-2 hover:border-line-strong"}`}
               >
-                <a.icon className="size-5" />
-                {a.label}
+                <a.icon className="icon-glow size-5" />
+                <span className="w-full truncate">{a.label}</span>
               </Link>
             ))}
           </div>
@@ -148,13 +150,6 @@ function NutritionJournal() {
             </dl>
             <p className="mt-3 text-[11px] text-ink-3">Repères : fibres ≥ 25–30 g/jour, sel ≤ 5 g/jour (OMS).</p>
           </Panel>
-          <Link href="/nutrition/library" className="panel flex items-center gap-3 p-4 transition hover:border-line-strong">
-            <BookOpen className="size-5 text-arise" />
-            <span className="min-w-0 flex-1">
-              <span className="block text-sm font-medium text-ink">Mes plats & recettes</span>
-              <span className="block text-xs text-ink-3">Modifier, renommer ou supprimer tes plats enregistrés</span>
-            </span>
-          </Link>
           <Panel>
             <p className="label mb-2">Astuce</p>
             <p className="text-sm text-ink-2">Pèse tes aliments crus quand c&apos;est possible : les valeurs changent beaucoup à la cuisson (le riz triple de poids).</p>

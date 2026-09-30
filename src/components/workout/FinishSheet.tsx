@@ -1,12 +1,13 @@
 "use client";
 
-import { Trophy } from "lucide-react";
+import { RefreshCw, Trophy } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/Button";
-import { Chip, Field, TextArea } from "@/components/ui/Fields";
+import { Chip, Field, TextArea, Toggle } from "@/components/ui/Fields";
 import { Notice } from "@/components/ui/Feedback";
 import { Sheet } from "@/components/ui/Sheet";
-import type { WorkoutSet } from "@/lib/db/types";
+import { routineDiff } from "@/lib/db/repos/workout";
+import type { Routine, Session, WorkoutSet } from "@/lib/db/types";
 import { fmtDuration, fmtInt } from "@/lib/utils/format";
 
 interface Props {
@@ -15,13 +16,17 @@ interface Props {
   sets: WorkoutSet[];
   elapsedSec: number;
   prCount: number;
-  onFinish: (opts: { rpe?: number; notes?: string }) => Promise<void>;
+  onFinish: (opts: { rpe?: number; notes?: string; syncRoutine?: boolean }) => Promise<void>;
   onDiscard: () => Promise<void>;
+  session?: Session;
+  routine?: Routine;
 }
 
-export function FinishSheet({ open, onClose, sets, elapsedSec, prCount, onFinish, onDiscard }: Props) {
+export function FinishSheet({ open, onClose, sets, elapsedSec, prCount, onFinish, onDiscard, session, routine }: Props) {
   const [rpe, setRpe] = useState<number | undefined>();
   const [notes, setNotes] = useState("");
+  const [syncRoutine, setSyncRoutine] = useState(false);
+  const diff = session && routine ? routineDiff(routine, session) : null;
   const [busy, setBusy] = useState(false);
   const [confirmDiscard, setConfirmDiscard] = useState(false);
   const done = sets.filter((s) => s.done && !s.warmup);
@@ -42,7 +47,7 @@ export function FinishSheet({ open, onClose, sets, elapsedSec, prCount, onFinish
             onClick={async () => {
               setBusy(true);
               try {
-                await onFinish({ rpe, notes: notes.trim() || undefined });
+                await onFinish({ rpe, notes: notes.trim() || undefined, syncRoutine: !!diff?.changed && syncRoutine });
               } finally {
                 setBusy(false);
               }
@@ -81,6 +86,17 @@ export function FinishSheet({ open, onClose, sets, elapsedSec, prCount, onFinish
           </p>
         )}
         {pending > 0 && <Notice>{pending} série(s) non validée(s) seront retirées.</Notice>}
+        {diff?.changed && routine && (
+          <div className="rounded-xl border border-arise/30 bg-arise/[0.06] p-3">
+            <p className="mb-1 flex items-center gap-2 text-sm font-medium text-ink">
+              <RefreshCw className="size-4 text-arise" /> Ta séance diffère du programme
+            </p>
+            <p className="mb-2 text-xs text-ink-3">
+              {[diff.added ? `${diff.added} exercice${diff.added > 1 ? "s" : ""} ajouté${diff.added > 1 ? "s" : ""}` : "", diff.removed ? `${diff.removed} retiré${diff.removed > 1 ? "s" : ""}` : "", diff.reordered ? "ordre modifié" : ""].filter(Boolean).join(" · ")}
+            </p>
+            <Toggle checked={syncRoutine} onChange={setSyncRoutine} label={`Mettre à jour « ${routine.name} »`} description="Le programme reprendra les exercices, l'ordre et le nombre de séries de cette séance" />
+          </div>
+        )}
         {done.length === 0 && <Notice tone="warn">Valide au moins une série pour enregistrer la séance.</Notice>}
         <Field label="Difficulté globale (RPE séance)">
           <div className="grid grid-cols-5 gap-1.5 sm:grid-cols-10">

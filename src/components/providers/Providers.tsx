@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import { GameWatcher } from "@/components/game/GameWatcher";
 import { SystemLayer } from "@/components/game/SystemLayer";
 import { GameProvider } from "./GameProvider";
+import { NoZoom } from "./NoZoom";
 import { ServiceWorker } from "./ServiceWorker";
 import { SyncProvider } from "./SyncProvider";
 
@@ -16,6 +17,7 @@ export function Providers({ children }: { children: ReactNode }) {
         <GameWatcher />
         <SystemLayer />
         <ServiceWorker />
+        <NoZoom />
         <SyncProvider />
       </GameProvider>
     </MotionConfig>

@@ -8,13 +8,15 @@ export type QuickSheet = "menu" | "weight" | "steps" | "water" | "sleep" | "card
 interface UiState {
   sheet: QuickSheet | null;
   date?: DayKey;
+  /** Value to prefill (e.g. steps read from a link). */
+  prefill?: number;
 }
 
 let state: UiState = { sheet: null };
 const listeners = new Set<() => void>();
 
-export function openSheet(sheet: QuickSheet, date?: DayKey) {
-  state = { sheet, date };
+export function openSheet(sheet: QuickSheet, date?: DayKey, prefill?: number) {
+  state = { sheet, date, prefill };
   listeners.forEach((l) => l());
 }
 

@@ -1,13 +1,15 @@
 "use client";
 
-import { ArrowLeft, Lightbulb, Trophy } from "lucide-react";
+import { ArrowLeft, Layers, Lightbulb, ListOrdered, NotebookPen, Pencil, Repeat, Target, TrendingUp, Trophy, Weight } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { EquipmentIcon } from "@/components/icons/EquipmentIcon";
+import { ExerciseIcon } from "@/components/icons/ExerciseIcon";
 import { MuscleIcon } from "@/components/icons/MuscleIcon";
+import { ExerciseEditorSheet } from "@/components/workout/ExerciseEditorSheet";
 import { TimeChart } from "@/components/charts/TimeChart";
-import { IconButton } from "@/components/ui/Button";
+import { Button, IconButton } from "@/components/ui/Button";
 import { Badge, EmptyState, PageSkeleton } from "@/components/ui/Feedback";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Panel, PanelHeader, StatTile } from "@/components/ui/Panel";
@@ -23,6 +25,7 @@ export default function ExerciseDetailPage() {
   const { byId } = useExerciseLibrary();
   const ex = byId(decodeURIComponent(id));
   const data = useExerciseSets(ex?.id);
+  const [editing, setEditing] = useState<false | "all" | "instructions">(false);
 
   const stats = useMemo(() => {
     if (!data?.sets.length) return null;
@@ -65,12 +68,29 @@ export default function ExerciseDetailPage() {
           <ArrowLeft />
         </IconButton>
       </div>
-      <PageHeader kicker={MUSCLE_LABEL[ex.primary]} title={ex.name} subtitle={ex.nameEn} />
+      <PageHeader
+        kicker={MUSCLE_LABEL[ex.primary]}
+        title={ex.name}
+        subtitle={ex.nameEn}
+        action={
+          <Button variant="secondary" size="sm" onClick={() => setEditing("all")}>
+            <Pencil /> Modifier
+          </Button>
+        }
+      />
+      <ExerciseEditorSheet open={!!editing} onClose={() => setEditing(false)} exercise={ex} focus={editing === "instructions" ? "instructions" : undefined} />
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-[20rem_1fr]">
         <div className="space-y-4">
           <Panel className="flex flex-col items-center">
-            <MuscleIcon primary={ex.primary} secondary={ex.secondary} view="both" className="h-48 w-auto" title={`Muscles ciblés : ${MUSCLE_LABEL[ex.primary]}`} />
+            <div className="flex items-center gap-4">
+              {ex.icon && !ex.icon.startsWith("view:") && (
+                <span className="flex h-24 w-20 items-center justify-center rounded-2xl border border-arise/30 bg-arise/[0.06]">
+                  <ExerciseIcon exercise={ex} className="h-16 w-14" />
+                </span>
+              )}
+              <MuscleIcon primary={ex.primary} secondary={ex.secondary} view="both" className="h-48 w-auto" title={`Muscles ciblés : ${MUSCLE_LABEL[ex.primary]}`} />
+            </div>
             <div className="mt-3 flex flex-wrap justify-center gap-1.5">
               <Badge color="#4da3ff">{MUSCLE_LABEL[ex.primary]}</Badge>
               {ex.secondary.map((m) => (
@@ -97,9 +117,23 @@ export default function ExerciseDetailPage() {
               </div>
             </dl>
           </Panel>
-          {ex.instructions.length > 0 && (
+          {ex.notes && (
             <Panel>
-              <PanelHeader title="Exécution" />
+              <PanelHeader title="Mes notes" icon={<NotebookPen />} />
+              <p className="text-sm whitespace-pre-line text-ink-2">{ex.notes}</p>
+            </Panel>
+          )}
+          <Panel>
+            <PanelHeader
+              title="Comment le faire"
+              icon={<ListOrdered />}
+              action={
+                <Button variant="ghost" size="sm" onClick={() => setEditing("instructions")}>
+                  <Pencil /> {ex.instructions.length ? "Modifier" : "Ajouter"}
+                </Button>
+              }
+            />
+            {ex.instructions.length > 0 ? (
               <ol className="space-y-2 text-sm text-ink-2">
                 {ex.instructions.map((s, i) => (
                   <li key={i} className="flex gap-2.5">
@@ -108,13 +142,17 @@ export default function ExerciseDetailPage() {
                   </li>
                 ))}
               </ol>
-              {ex.tips?.map((t) => (
-                <p key={t} className="mt-3 flex gap-2 text-xs text-ink-3">
-                  <Lightbulb className="size-4 shrink-0 text-warn" /> {t}
-                </p>
-              ))}
-            </Panel>
-          )}
+            ) : (
+              <button type="button" onClick={() => setEditing("instructions")} className="w-full rounded-xl border border-dashed border-line-strong px-3 py-3 text-sm text-ink-3 transition hover:border-arise/50 hover:text-ink">
+                Aucune instruction. Ajoute tes étapes (placement, trajectoire, respiration…).
+              </button>
+            )}
+            {ex.tips?.map((t, i) => (
+              <p key={i} className="mt-3 flex gap-2 text-xs text-ink-3">
+                <Lightbulb className="size-4 shrink-0 text-warn" /> {t}
+              </p>
+            ))}
+          </Panel>
         </div>
 
         <div className="space-y-4">
@@ -123,14 +161,14 @@ export default function ExerciseDetailPage() {
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                 {weighted ? (
                   <>
-                    <StatTile label="Charge max" value={`${fmtDec(stats.bestWeight.weightKg)} kg`} hint={`× ${stats.bestWeight.reps} reps`} accent="var(--color-warn)" />
-                    <StatTile label="1RM estimé" value={`${fmtDec(e1rm(stats.bestE1.weightKg, stats.bestE1.reps))} kg`} hint={`${fmtDec(stats.bestE1.weightKg)} × ${stats.bestE1.reps}`} accent="var(--color-arise)" />
-                    <StatTile label="Meilleure série" value={`${fmtInt(setVolume(stats.bestVol))} kg`} hint="volume (charge × reps)" />
+                    <StatTile label="Charge max" icon={<Weight />} value={`${fmtDec(stats.bestWeight.weightKg)} kg`} hint={`× ${stats.bestWeight.reps} reps`} accent="var(--color-warn)" />
+                    <StatTile label="1RM estimé" icon={<Target />} value={`${fmtDec(e1rm(stats.bestE1.weightKg, stats.bestE1.reps))} kg`} hint={`${fmtDec(stats.bestE1.weightKg)} × ${stats.bestE1.reps}`} accent="var(--color-arise)" />
+                    <StatTile label="Meilleure série" icon={<Layers />} accent="var(--color-violet-2)" value={`${fmtInt(setVolume(stats.bestVol))} kg`} hint="volume (charge × reps)" />
                   </>
                 ) : (
-                  <StatTile label="Reps max" value={stats.maxReps} accent="var(--color-warn)" />
+                  <StatTile label="Reps max" icon={<Repeat />} value={stats.maxReps} accent="var(--color-warn)" />
                 )}
-                <StatTile label="Progression" value={fmtSigned(stats.progress, 0, "%")} hint={`${stats.rows.length} séances`} accent="var(--color-good)" />
+                <StatTile label="Progression" icon={<TrendingUp />} value={fmtSigned(stats.progress, 0, "%")} hint={`${stats.rows.length} séances`} accent="var(--color-good)" />
               </div>
               <Panel>
                 <PanelHeader title={weighted ? "Progression de la force" : "Progression des répétitions"} icon={<Trophy />} />

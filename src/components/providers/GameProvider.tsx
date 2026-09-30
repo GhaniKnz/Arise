@@ -10,6 +10,7 @@ import { buildLedger, type DayData, type Ledger } from "@/lib/domain/game";
 import { derivePRs, type PREvent } from "@/lib/domain/strength";
 import { adaptiveTdee, weightTrend, type AdaptiveTdee, type Point, type WeightTrend } from "@/lib/domain/trend";
 import { EXERCISE_BY_ID } from "@/lib/data/exercises";
+import { bossPath, bossStates, type BossState } from "@/lib/domain/bosses";
 import { addDays, type DayKey } from "@/lib/utils/date";
 
 export interface GameState {
@@ -25,6 +26,8 @@ export interface GameState {
   adaptive: AdaptiveTdee | null;
   prs: PREvent[];
   currentWeight: number | null;
+  /** Weight-goal bosses with their defeated state. */
+  bosses: BossState[];
 }
 
 const EMPTY_RAW: RawData = { entries: [], logs: [], sessions: [], sets: [], cardio: [], metrics: [] };
@@ -47,7 +50,7 @@ function firstDate(raw: RawData, fallback: DayKey): DayKey {
 export function GameProvider({ children }: { children: ReactNode }) {
   const today = useToday();
   const data = useLiveQuery(async () => {
-    const [profile, entries, logs, sessions, sets, cardio, metrics] = await Promise.all([
+    const [profile, entries, logs, sessions, sets, cardio, metrics, customExercises] = await Promise.all([
       db.profile.get("me"),
       db.foodEntries.toArray(),
       db.dailyLogs.toArray(),
@@ -55,8 +58,10 @@ export function GameProvider({ children }: { children: ReactNode }) {
       db.sets.toArray(),
       db.cardio.toArray(),
       db.bodyMetrics.toArray(),
+      db.customExercises.toArray(),
     ]);
-    return { profile: profile ?? null, raw: { entries, logs, sessions, sets, cardio, metrics } as RawData };
+    const weightedOverride = new Map(customExercises.map((e) => [e.id, e.weighted]));
+    return { profile: profile ?? null, raw: { entries, logs, sessions, sets, cardio, metrics } as RawData, weightedOverride };
   }, []);
 
   const state = useMemo<GameState>(() => {
@@ -72,12 +77,21 @@ export function GameProvider({ children }: { children: ReactNode }) {
     const dayMap = new Map(days.map((d) => [d.date, d]));
 
     const doneIds = new Set(raw.sessions.filter((s) => s.status === "done").map((s) => s.id));
+    const overrides = data?.weightedOverride;
     const prs = derivePRs(
       raw.sets.filter((s) => doneIds.has(s.sessionId)),
-      (id) => EXERCISE_BY_ID.get(id)?.weighted ?? true,
+      (id) => overrides?.get(id) ?? EXERCISE_BY_ID.get(id)?.weighted ?? true,
     );
     const prsByDate = new Map<DayKey, number>();
     for (const p of prs) prsByDate.set(p.date, (prsByDate.get(p.date) ?? 0) + 1);
+
+    const weights: Point[] = raw.metrics
+      .filter((m) => m.weightKg != null && m.date <= today)
+      .map((m) => ({ date: m.date, value: m.weightKg! }))
+      .sort((a, b) => a.date.localeCompare(b.date));
+    const trend = weightTrend(weights, today);
+
+    const bosses = profile ? bossStates(bossPath(profile.startWeightKg, profile.targetWeightKg), profile.startWeightKg, trend.series) : [];
 
     const ledger = buildLedger({
       days,
@@ -86,13 +100,8 @@ export function GameProvider({ children }: { children: ReactNode }) {
       quests: profile?.quests ?? [],
       prsByDate,
       today,
+      bossEvents: bosses.filter((b) => b.defeatedOn).map((b) => ({ date: b.defeatedOn!, name: b.name, xp: b.xp })),
     });
-
-    const weights: Point[] = raw.metrics
-      .filter((m) => m.weightKg != null && m.date <= today)
-      .map((m) => ({ date: m.date, value: m.weightKg! }))
-      .sort((a, b) => a.date.localeCompare(b.date));
-    const trend = weightTrend(weights, today);
     const intake: Point[] = days.filter((d) => d.entries > 0 && d.date < today).map((d) => ({ date: d.date, value: d.kcal }));
     const adaptive = adaptiveTdee(weights, intake, addDays(today, -1));
 
@@ -109,6 +118,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       adaptive,
       prs,
       currentWeight: weights.at(-1)?.value ?? profile?.startWeightKg ?? null,
+      bosses,
     };
   }, [data, today]);
 

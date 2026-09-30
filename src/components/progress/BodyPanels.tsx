@@ -1,6 +1,6 @@
 "use client";
 
-import { Plus, Ruler, Trash2 } from "lucide-react";
+import { BicepsFlexed, Bone, Droplets, PieChart, Plus, Ruler, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useGame } from "@/components/providers/GameProvider";
 import { TimeChart } from "@/components/charts/TimeChart";
@@ -89,10 +89,10 @@ export function CompositionPanel() {
     <div className="space-y-4">
       <Notice tone="warn">Les balances grand public donnent des <strong>estimations</strong> (impédancemétrie), sensibles à l&apos;hydratation. Regarde la tendance sur plusieurs semaines, dans les mêmes conditions.</Notice>
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-        <StatTile label="Masse grasse" value={bf.length ? fmtDec(bf.at(-1)!.value) : "—"} unit="%" hint={bf.length > 1 ? fmtSigned(bf.at(-1)!.value - bf[0].value, 1, "pts") : undefined} accent="var(--color-warn)" />
-        <StatTile label="Masse musculaire" value={muscle.length ? fmtDec(muscle.at(-1)!.value) : "—"} unit="kg" hint={muscle.length > 1 ? fmtSigned(muscle.at(-1)!.value - muscle[0].value, 1, "kg") : undefined} accent="var(--color-arise)" />
-        <StatTile label="Masse maigre" value={last ? fmtDec(last.lean) : "—"} unit="kg" hint={last && first && lean.length > 1 ? fmtSigned(last.lean - first.lean, 1, "kg") : undefined} />
-        <StatTile label="Masse grasse (kg)" value={last ? fmtDec(last.fat) : "—"} unit="kg" hint={last && first && lean.length > 1 ? fmtSigned(last.fat - first.fat, 1, "kg") : undefined} />
+        <StatTile label="Masse grasse" icon={<Droplets />} value={bf.length ? fmtDec(bf.at(-1)!.value) : "—"} unit="%" hint={bf.length > 1 ? fmtSigned(bf.at(-1)!.value - bf[0].value, 1, "pts") : undefined} accent="var(--color-warn)" />
+        <StatTile label="Masse musculaire" icon={<BicepsFlexed />} value={muscle.length ? fmtDec(muscle.at(-1)!.value) : "—"} unit="kg" hint={muscle.length > 1 ? fmtSigned(muscle.at(-1)!.value - muscle[0].value, 1, "kg") : undefined} accent="var(--color-arise)" />
+        <StatTile label="Masse maigre" icon={<Bone />} accent="var(--color-good)" value={last ? fmtDec(last.lean) : "—"} unit="kg" hint={last && first && lean.length > 1 ? fmtSigned(last.lean - first.lean, 1, "kg") : undefined} />
+        <StatTile label="Masse grasse (kg)" icon={<PieChart />} accent="var(--color-fat)" value={last ? fmtDec(last.fat) : "—"} unit="kg" hint={last && first && lean.length > 1 ? fmtSigned(last.fat - first.fat, 1, "kg") : undefined} />
       </div>
       {bf.length > 1 && (
         <Panel>

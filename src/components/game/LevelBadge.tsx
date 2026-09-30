@@ -5,14 +5,14 @@ import { RANK_META, rankFor, type LevelInfo } from "@/lib/domain/game";
 import { cn } from "@/lib/utils/cn";
 import { fmtInt } from "@/lib/utils/format";
 
-export function RankBadge({ level, size = "md", className }: { level: number; size?: "sm" | "md" | "lg"; className?: string }) {
+export function RankBadge({ level, size = "md", className, animated = true }: { level: number; size?: "sm" | "md" | "lg"; className?: string; animated?: boolean }) {
   const rank = rankFor(level);
   const meta = RANK_META[rank];
   const s = size === "sm" ? "size-6 text-[11px]" : size === "lg" ? "size-14 text-2xl" : "size-9 text-sm";
   return (
     <span
-      className={cn("relative inline-flex shrink-0 items-center justify-center font-display font-bold", s, className)}
-      style={{ color: meta.color }}
+      className={cn("relative inline-flex shrink-0 items-center justify-center font-display font-bold", animated && "aura", s, className)}
+      style={{ color: meta.color, "--aura": meta.color } as React.CSSProperties}
       title={meta.label}
       aria-label={meta.label}
     >

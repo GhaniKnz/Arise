@@ -23,6 +23,9 @@ export const viewport: Viewport = {
   colorScheme: "dark",
   width: "device-width",
   initialScale: 1,
+  // App-like behaviour on phones: no pinch or input-focus zoom.
+  maximumScale: 1,
+  userScalable: false,
   viewportFit: "cover",
 };
 

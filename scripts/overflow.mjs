@@ -6,7 +6,13 @@ await page.goto(base + "/onboarding", { waitUntil: "networkidle" });
 await page.getByRole("button", { name: /données de démo/i }).click();
 await page.waitForURL(base + "/");
 for (const r of (process.env.ROUTES ?? "/progress,/status,/settings").split(",")) {
-  await page.goto(base + r, { waitUntil: "networkidle" });
+  // "@history" = latest finished session (in edit mode).
+  let path = r;
+  if (r === "@history") {
+    await page.goto(base + "/workout", { waitUntil: "networkidle" });
+    path = (await page.locator('a[href^="/workout/history/"]').first().getAttribute("href")) + "?edit=1";
+  }
+  await page.goto(base + path, { waitUntil: "networkidle" });
   await page.waitForTimeout(800);
   const res = await page.evaluate(() => {
     const out = [];
@@ -14,7 +20,7 @@ for (const r of (process.env.ROUTES ?? "/progress,/status,/settings").split(",")
       const rect = el.getBoundingClientRect();
       if (rect.right > window.innerWidth + 1 && rect.width > 0) {
         let p = el.parentElement, clipped = false;
-        while (p) { const s = getComputedStyle(p); if (s.overflowX === "auto" || s.overflowX === "hidden" || s.overflowX === "scroll") { clipped = true; break; } p = p.parentElement; }
+        while (p) { const s = getComputedStyle(p); if (["auto", "hidden", "scroll", "clip"].includes(s.overflowX)) { clipped = true; break; } p = p.parentElement; }
         if (!clipped) out.push(`${el.tagName.toLowerCase()}.${(el.className?.baseVal ?? el.className ?? "").toString().slice(0, 90)} right=${Math.round(rect.right)} text="${(el.textContent ?? "").trim().slice(0, 40)}"`);
       }
     }

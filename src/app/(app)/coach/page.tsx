@@ -11,7 +11,7 @@ import { IconButton } from "@/components/ui/Button";
 import { Chip } from "@/components/ui/Fields";
 import { Notice } from "@/components/ui/Feedback";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { apiHeaders, getUserAiKey } from "@/lib/api";
+import { apiHeaders, getGeminiKey, getUserAiKey } from "@/lib/api";
 import { buildCoachContext } from "@/lib/ai/context";
 import { db } from "@/lib/db";
 import { useCoachMessages } from "@/lib/db/hooks";
@@ -41,8 +41,8 @@ export default function CoachPage() {
   useEffect(() => {
     fetch("/api/ai/status")
       .then((r) => r.json())
-      .then((s: { serverKey: boolean }) => setAiReady(s.serverKey || !!getUserAiKey()))
-      .catch(() => setAiReady(!!getUserAiKey()));
+      .then((s: { serverKey: boolean; geminiServerKey?: boolean }) => setAiReady(s.serverKey || !!s.geminiServerKey || !!getUserAiKey() || !!getGeminiKey()))
+      .catch(() => setAiReady(!!getUserAiKey() || !!getGeminiKey()));
     return () => abortRef.current?.abort();
   }, []);
 

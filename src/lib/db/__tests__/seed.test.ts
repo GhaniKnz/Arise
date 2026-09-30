@@ -7,8 +7,8 @@ import { buildLedger } from "@/lib/domain/game";
 import { derivePRs } from "@/lib/domain/strength";
 import { adaptiveTdee, weightTrend } from "@/lib/domain/trend";
 import { addDays, todayKey } from "@/lib/utils/date";
-import { logFood, updateEntryGrams, deleteEntries } from "../repos/nutrition";
-import { startSession, setDone, finishSession, addSet } from "../repos/workout";
+import { logFood, updateEntryGrams, deleteEntries, rememberProducts, rememberMeal, estimationMemory } from "../repos/nutrition";
+import { startSession, setDone, finishSession, addSet, addExerciseToSession, removeExerciseFromSession, blockSets, deleteSet, restoreSet, updateSessionInfo, addExerciseToRoutine, removeExerciseFromRoutine, routineDiff, syncRoutineFromSession, logPastSession } from "../repos/workout";
 import { upsertDailyLog, addWater } from "../repos/body";
 import { FOOD_BY_ID } from "@/lib/data/foods";
 
@@ -73,5 +73,153 @@ describe("demo seed", () => {
     const after = await db.sets.where("sessionId").equals(s.id).toArray();
     expect(after).toHaveLength(1);
     expect((await db.sessions.get(s.id))!.status).toBe("done");
+  });
+
+  it("lets the same exercise appear several times in a session", async () => {
+    const s0 = await startSession({ name: "Test doublons", type: "custom" });
+    await addExerciseToSession(s0, "bench_press", 2);
+    let s = (await db.sessions.get(s0.id))!;
+    await addExerciseToSession(s, "lateral_raise", 2);
+    s = (await db.sessions.get(s0.id))!;
+    await addExerciseToSession(s, "bench_press", 3);
+    s = (await db.sessions.get(s0.id))!;
+    expect(s.exerciseIds).toEqual(["bench_press", "lateral_raise", "bench_press"]);
+
+    let sets = await db.sets.where("sessionId").equals(s.id).toArray();
+    expect(blockSets(sets, s.exerciseIds, 0)).toHaveLength(2);
+    expect(blockSets(sets, s.exerciseIds, 2)).toHaveLength(3);
+    expect(blockSets(sets, s.exerciseIds, 2).every((x) => x.slot === 1)).toBe(true);
+
+    await addSet(s, "bench_press", false, 1);
+    sets = await db.sets.where("sessionId").equals(s.id).toArray();
+    expect(blockSets(sets, s.exerciseIds, 2)).toHaveLength(4);
+
+    // Removing the first bench block: the second one becomes the first.
+    await removeExerciseFromSession(s, 0);
+    s = (await db.sessions.get(s0.id))!;
+    sets = await db.sets.where("sessionId").equals(s.id).toArray();
+    expect(s.exerciseIds).toEqual(["lateral_raise", "bench_press"]);
+    expect(blockSets(sets, s.exerciseIds, 1)).toHaveLength(4);
+    expect(sets.filter((x) => x.exerciseId === "bench_press").every((x) => (x.slot ?? 0) === 0)).toBe(true);
+  });
+
+  it("edits a finished session after the fact", async () => {
+    const routine = (await db.routines.toArray()).find((r) => r.exercises.length >= 2)!;
+    const date = addDays(todayKey(), -3);
+    let s = await logPastSession({ date, routine, name: routine.name, type: routine.type, durationMin: 60 });
+    let sets = await db.sets.where("sessionId").equals(s.id).toArray();
+    expect(sets).toHaveLength(routine.exercises.reduce((a, x) => a + x.sets, 0));
+    expect(sets.every((x) => x.done && x.date === date)).toBe(true);
+
+    // Remove a set, then undo.
+    const victim = sets[0];
+    await deleteSet(victim.id);
+    expect(await db.sets.get(victim.id)).toBeUndefined();
+    expect(await db.tombstones.get(victim.id)).toBeDefined();
+    await restoreSet(victim);
+    expect(await db.sets.get(victim.id)).toBeDefined();
+    expect(await db.tombstones.get(victim.id)).toBeUndefined();
+
+    // Sets added to a finished session count as done.
+    await addSet(s, routine.exercises[0].exerciseId);
+    await addExerciseToSession(s, "lateral_raise", 2);
+    s = (await db.sessions.get(s.id))!;
+    sets = await db.sets.where("sessionId").equals(s.id).toArray();
+    expect(sets.every((x) => x.done)).toBe(true);
+    expect(s.exerciseIds.at(-1)).toBe("lateral_raise");
+
+    // Move it to another day: sets follow.
+    const moved = addDays(date, -1);
+    await updateSessionInfo(s, { name: "Push corrigé", date: moved, startTime: "07:30", durationMin: 45, rpe: 8, notes: "ok" });
+    s = (await db.sessions.get(s.id))!;
+    expect(s.name).toBe("Push corrigé");
+    expect(s.date).toBe(moved);
+    expect(new Date(s.endedAt!).getTime() - new Date(s.startedAt).getTime()).toBe(45 * 60_000);
+    expect(new Date(s.startedAt).getHours()).toBe(7);
+    expect((await db.sets.where("sessionId").equals(s.id).toArray()).every((x) => x.date === moved)).toBe(true);
+  });
+
+  it("backfills a forgotten session from the performance before that day", async () => {
+    const routine = {
+      id: "r-backfill",
+      name: "Backfill",
+      type: "custom" as const,
+      exercises: [{ exerciseId: "test_backfill", sets: 2, repsMin: 8, repsMax: 12, restSec: 90 }],
+      createdAt: "",
+      updatedAt: "",
+    };
+    const today = todayKey();
+    const log = async (daysAgo: number, weightKg?: number) => {
+      const s = await logPastSession({ date: addDays(today, -daysAgo), routine, name: "Backfill", type: "custom", durationMin: 50, startTime: "07:45" });
+      const sets = await db.sets.where("sessionId").equals(s.id).toArray();
+      if (weightKg != null) for (const x of sets) await db.sets.update(x.id, { weightKg });
+      return { s, sets };
+    };
+    await log(10, 50);
+    await log(2, 100);
+    const middle = await log(5);
+    expect(middle.sets.map((x) => x.weightKg)).toEqual([50, 50]);
+    expect(middle.sets.every((x) => x.done && x.date === addDays(today, -5))).toBe(true);
+    expect(new Date(middle.s.startedAt).getHours()).toBe(7);
+    expect(new Date(middle.s.endedAt!).getTime() - new Date(middle.s.startedAt).getTime()).toBe(50 * 60_000);
+    expect((await log(1)).sets.map((x) => x.weightKg)).toEqual([100, 100]);
+
+    // An exercise added later to the backfilled session is prefilled from before it too.
+    await addExerciseToSession(middle.s, "test_backfill", 1);
+    const added = (await db.sets.where("sessionId").equals(middle.s.id).toArray()).filter((x) => x.slot === 1);
+    expect(added.map((x) => x.weightKg)).toEqual([50]);
+  });
+
+  it("keeps the program in sync with session changes", async () => {
+    const base = (await db.routines.toArray()).find((r) => r.exercises.length >= 2)!;
+    const id = base.id;
+    const firstId = base.exercises[0].exerciseId;
+    // An id no demo program contains, so removal targets the one just added.
+    await addExerciseToRoutine(id, { exerciseId: "test_only_ex", sets: 3, repsMin: 10, repsMax: 15, restSec: 60 });
+    expect((await db.routines.get(id))!.exercises.at(-1)!.exerciseId).toBe("test_only_ex");
+    await removeExerciseFromRoutine(id, "test_only_ex");
+    expect((await db.routines.get(id))!.exercises).toEqual(base.exercises);
+
+    const routine = (await db.routines.get(id))!;
+    for (const a of await db.sessions.where("status").equals("active").toArray()) await finishSession(a);
+    let s = await startSession({ routine });
+    expect(routineDiff(routine, s).changed).toBe(false);
+    await removeExerciseFromSession(s, 0);
+    s = (await db.sessions.get(s.id))!;
+    await addExerciseToSession(s, "lateral_raise", 2);
+    s = (await db.sessions.get(s.id))!;
+    const diff = routineDiff(routine, s);
+    expect(diff).toMatchObject({ added: 1, removed: 1, changed: true });
+
+    const sets = await db.sets.where("sessionId").equals(s.id).toArray();
+    for (const x of sets) await setDone(x.id, true);
+    await finishSession(s);
+    await syncRoutineFromSession(s, await db.sets.where("sessionId").equals(s.id).toArray());
+    const synced = (await db.routines.get(id))!;
+    expect(synced.exercises.map((e) => e.exerciseId)).toEqual(s.exerciseIds);
+    if (base.exercises.filter((b) => b.exerciseId === firstId).length === 1) expect(synced.exercises.map((e) => e.exerciseId)).not.toContain(firstId);
+    expect(synced.exercises.at(-1)).toMatchObject({ exerciseId: "lateral_raise", sets: 2 });
+    // Kept exercises keep their rep range.
+    const kept = synced.exercises[0];
+    const orig = base.exercises.find((e) => e.exerciseId === kept.exerciseId)!;
+    expect([kept.repsMin, kept.repsMax]).toEqual([orig.repsMin, orig.repsMax]);
+  });
+
+  it("remembers estimated products and dishes without duplicates", async () => {
+    const skyr = { name: "Skyr nature", grams: 150, per100: { kcal: 60, protein: 10, carbs: 4, fat: 0.2, fiber: 0 }, category: "dairy" as const };
+    const banana = { name: "Banane", grams: 120, per100: { kcal: 90, protein: 1.1, carbs: 20, fat: 0.3, fiber: 2 }, category: "fruits" as const };
+    const first = await rememberProducts([skyr, banana]);
+    expect(first.every(Boolean)).toBe(true);
+    // Same names (different case/accents) → same ids, nothing new.
+    const again = await rememberProducts([{ ...skyr, name: "skyr  Nature" }, { ...banana, name: "BANANE" }]);
+    expect(again).toEqual(first);
+    const mem = await estimationMemory();
+    expect(mem.products.filter((p) => p.name.toLowerCase().includes("skyr"))).toHaveLength(1);
+
+    const [mealId, created] = await rememberMeal("Assiette de curry poulet", [skyr], "lunch");
+    expect(created).toBe(true);
+    const [sameId, createdAgain] = await rememberMeal("assiette de curry  poulet", [banana], "dinner");
+    expect(createdAgain).toBe(false);
+    expect(sameId).toBe(mealId);
   });
 });

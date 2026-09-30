@@ -1,6 +1,8 @@
 "use client";
 
-import { ArrowLeft, ChefHat, PenLine, Plus, Trash2, UtensilsCrossed } from "lucide-react";
+import { ArrowLeft, ChefHat, ChevronRight, PenLine, Plus, Sparkles, Trash2, UtensilsCrossed } from "lucide-react";
+import Image from "next/image";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 import { useGame } from "@/components/providers/GameProvider";
@@ -8,11 +10,13 @@ import { CustomFoodSheet } from "@/components/nutrition/CustomFoodSheet";
 import { FoodRow } from "@/components/nutrition/FoodRow";
 import { IngredientEditor } from "@/components/nutrition/IngredientEditor";
 import { Button, IconButton } from "@/components/ui/Button";
+import { Sweep } from "@/components/ui/Effects";
 import { Field, NumberInput, Segmented, TextArea, TextInput } from "@/components/ui/Fields";
 import { EmptyState, PageSkeleton } from "@/components/ui/Feedback";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Panel } from "@/components/ui/Panel";
 import { Sheet } from "@/components/ui/Sheet";
+import { RECIPES } from "@/lib/data/recipes";
 import { useCustomFoods, useMeals, useRecipes } from "@/lib/db/hooks";
 import { deleteFood, deleteMeal, deleteRecipe, saveRecipe } from "@/lib/db/repos/nutrition";
 import type { FoodItem, Ingredient, Recipe } from "@/lib/db/types";
@@ -78,7 +82,7 @@ function Library() {
   const [recipeEdit, setRecipeEdit] = useState<Recipe | null | undefined>(undefined);
   const [foodEdit, setFoodEdit] = useState<FoodItem | null | undefined>(undefined);
   if (!profile) return <PageSkeleton />;
-  const customFoods = (foods ?? []).filter((f) => f.source === "custom");
+  const customFoods = (foods ?? []).filter((f) => f.source === "custom" || f.source === "ai");
 
   return (
     <div className="mx-auto max-w-3xl">
@@ -105,7 +109,7 @@ function Library() {
         options={[
           { value: "meals", label: "Plats", icon: <UtensilsCrossed /> },
           { value: "recipes", label: "Recettes", icon: <ChefHat /> },
-          { value: "foods", label: "Aliments", icon: <PenLine /> },
+          { value: "foods", label: "Produits", icon: <PenLine /> },
         ]}
       />
 
@@ -138,6 +142,22 @@ function Library() {
             <EmptyState icon={<UtensilsCrossed />} title="Aucun plat enregistré" description="Compose un plat avec des codes-barres, des photos IA ou la recherche, puis ajoute-le en un tap." action={<Button size="sm" onClick={() => router.push("/nutrition/compose?intent=save")}>Composer un plat</Button>} />
           )}
         </div>
+      )}
+
+      {tab === "recipes" && (
+        <Link href="/nutrition/recipes" className="panel card-hover relative mb-3 flex items-center gap-3 overflow-hidden p-3">
+          <Sweep delay={1} duration={7} />
+          <span className="relative flex -space-x-3">
+            {["curry-poulet", "poke-thon", "pancakes-banane"].map((s) => (
+              <Image key={s} src={`/recipes/${s}-sm.webp`} alt="" width={48} height={48} unoptimized className="size-12 rounded-xl border-2 border-deep object-cover" />
+            ))}
+          </span>
+          <span className="relative min-w-0 flex-1">
+            <span className="block font-display font-bold text-ink">Recettes faciles ARISE</span>
+            <span className="block text-xs text-ink-3">{RECIPES.length} recettes avec photos, prix, ustensiles et courses</span>
+          </span>
+          <ChevronRight className="relative size-5 text-arise" />
+        </Link>
       )}
 
       {tab === "recipes" && (
@@ -187,11 +207,18 @@ function Library() {
 
       {tab === "foods" &&
         (customFoods.length ? (
-          <ul className="panel p-2">
-            {customFoods.map((f) => (
-              <FoodRow key={f.id} food={f} goal={profile.goal} onSelect={setFoodEdit} />
-            ))}
-          </ul>
+          <>
+            {customFoods.some((f) => f.source === "ai") && (
+              <p className="mb-2 flex items-center gap-1.5 text-xs text-ink-3">
+                <Sparkles className="size-3.5 text-violet-2" /> Produits mémorisés automatiquement depuis tes photos : réutilisés sans doublon à la prochaine estimation.
+              </p>
+            )}
+            <ul className="panel p-2">
+              {customFoods.map((f) => (
+                <FoodRow key={f.id} food={f} goal={profile.goal} onSelect={setFoodEdit} />
+              ))}
+            </ul>
+          </>
         ) : (
           <EmptyState icon={<PenLine />} title="Aucun aliment personnalisé" description="Ajoute un produit absent de la base avec les valeurs de son étiquette." action={<Button size="sm" onClick={() => setFoodEdit(null)}>Créer un aliment</Button>} />
         ))}
@@ -202,7 +229,7 @@ function Library() {
         onClose={() => setFoodEdit(undefined)}
         food={foodEdit ?? null}
         onDelete={
-          foodEdit?.source === "custom"
+          foodEdit?.source === "custom" || foodEdit?.source === "ai"
             ? async () => {
                 await deleteFood(foodEdit.id);
                 setFoodEdit(undefined);

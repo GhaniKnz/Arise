@@ -1,6 +1,6 @@
 "use client";
 
-import { Droplet, RotateCcw } from "lucide-react";
+import { ClipboardPaste, Droplet, Footprints, HeartPulse, RotateCcw, Smartphone } from "lucide-react";
 import { motion } from "motion/react";
 import { useEffect, useState } from "react";
 import { useGame } from "@/components/providers/GameProvider";
@@ -15,12 +15,14 @@ import { cue } from "@/lib/system/feedback";
 import { toast } from "@/lib/system/store";
 import { closeSheet } from "@/lib/system/ui";
 import { cn } from "@/lib/utils/cn";
+import { parseStepsText } from "@/lib/domain/steps";
 import { relativeDayLabel, type DayKey } from "@/lib/utils/date";
 import { fmtInt, fmtLiters, fmtSleep } from "@/lib/utils/format";
 
-export function StepsSheet({ open, date }: { open: boolean; date: DayKey }) {
-  const { profile } = useGame();
+export function StepsSheet({ open, date, prefill }: { open: boolean; date: DayKey; prefill?: number }) {
+  const { profile, today } = useGame();
   const [steps, setSteps] = useState<number | undefined>();
+  const [guide, setGuide] = useState(false);
   const target = profile?.targets.steps ?? 10000;
 
   useEffect(() => {
@@ -29,8 +31,8 @@ export function StepsSheet({ open, date }: { open: boolean; date: DayKey }) {
       .where("date")
       .equals(date)
       .first()
-      .then((l) => setSteps(l?.steps));
-  }, [open, date]);
+      .then((l) => setSteps(prefill ?? l?.steps));
+  }, [open, date, prefill]);
 
   const save = async () => {
     await upsertDailyLog(date, { steps: steps == null ? null : Math.round(steps) });
@@ -38,27 +40,104 @@ export function StepsSheet({ open, date }: { open: boolean; date: DayKey }) {
     closeSheet();
   };
 
+  const paste = async () => {
+    let text = "";
+    try {
+      text = await navigator.clipboard.readText();
+    } catch {
+      toast({ tone: "warn", title: "Presse-papiers inaccessible", message: "Autorise le collage, ou saisis le nombre à la main." });
+      return;
+    }
+    const found = parseStepsText(text, today);
+    if (!found.length) {
+      toast({ tone: "warn", title: "Aucun nombre de pas trouvé", message: "Lance d'abord ton raccourci « ARISE pas », puis réessaie." });
+      return;
+    }
+    const others = found.filter((f) => f.date !== date);
+    for (const f of others) await upsertDailyLog(f.date, { steps: f.steps });
+    const mine = found.find((f) => f.date === date);
+    if (mine) setSteps(mine.steps);
+    cue("tap");
+    toast({
+      tone: "success",
+      title: mine ? `${fmtInt(mine.steps)} pas importés` : `${others.length} jour(s) importé(s)`,
+      message: others.length ? `${others.length} autre(s) jour(s) mis à jour` : "Vérifie puis enregistre",
+    });
+  };
+
   return (
-    <Sheet open={open} onClose={closeSheet} title="Pas du jour" description={relativeDayLabel(date)} footer={<Button block size="lg" onClick={save}>Enregistrer</Button>}>
-      <div className="space-y-4">
-        <NumberInput value={steps} onChange={setSteps} step={500} min={0} max={100000} decimals={0} size="lg" ariaLabel="Nombre de pas" />
-        <div>
-          <div className="mb-1.5 flex justify-between text-xs text-ink-3">
-            <span>Objectif</span>
-            <span className="tabular">
-              {fmtInt(steps ?? 0)} / {fmtInt(target)}
-            </span>
+    <>
+      <Sheet open={open && !guide} onClose={closeSheet} title="Pas du jour" description={relativeDayLabel(date)} footer={<Button block size="lg" onClick={save}>Enregistrer</Button>}>
+        <div className="space-y-4">
+          <NumberInput value={steps} onChange={setSteps} step={500} min={0} max={100000} decimals={0} size="lg" ariaLabel="Nombre de pas" />
+          <div>
+            <div className="mb-1.5 flex justify-between text-xs text-ink-3">
+              <span className="flex items-center gap-1.5">
+                <Footprints className="size-3.5 text-arise" /> Objectif
+              </span>
+              <span className="tabular">
+                {fmtInt(steps ?? 0)} / {fmtInt(target)}
+              </span>
+            </div>
+            <ProgressBar value={steps ?? 0} max={target} gradient label="Progression des pas" />
           </div>
-          <ProgressBar value={steps ?? 0} max={target} gradient label="Progression des pas" />
+          <div className="flex flex-wrap gap-2">
+            {[5000, 8000, 10000, 12000, 15000].map((v) => (
+              <Chip key={v} active={steps === v} onClick={() => setSteps(v)}>
+                {fmtInt(v)}
+              </Chip>
+            ))}
+          </div>
+          <div className="rounded-2xl border border-arise/25 bg-arise/[0.05] p-3">
+            <p className="flex items-center gap-2 text-sm font-medium text-ink">
+              <HeartPulse className="size-4 text-rose" /> Tes vrais pas (Apple Santé)
+            </p>
+            <p className="mt-1 text-xs text-ink-3">Ton iPhone compte tes pas toute la journée. Un raccourci les copie, ARISE les colle en un geste.</p>
+            <div className="mt-2.5 flex flex-wrap gap-2">
+              <Button size="sm" onClick={paste}>
+                <ClipboardPaste /> Coller depuis Santé
+              </Button>
+              <Button size="sm" variant="ghost" onClick={() => setGuide(true)}>
+                <Smartphone /> Configurer (1 min)
+              </Button>
+            </div>
+          </div>
         </div>
-        <div className="flex flex-wrap gap-2">
-          {[5000, 8000, 10000, 12000, 15000].map((v) => (
-            <Chip key={v} active={steps === v} onClick={() => setSteps(v)}>
-              {fmtInt(v)}
-            </Chip>
+      </Sheet>
+      <StepsGuideSheet open={open && guide} onClose={() => setGuide(false)} />
+    </>
+  );
+}
+
+const SHORTCUT_STEPS: [string, string][] = [
+  ["Ouvre l'app Raccourcis", "Touche « + » pour créer un raccourci et nomme-le « ARISE pas »."],
+  ["Rechercher des échantillons de santé", "Type : Nombre de pas · Date de début : aujourd'hui · Regrouper par : Jour."],
+  ["Calculer les statistiques", "Choisis « Somme » des échantillons trouvés."],
+  ["Copier dans le presse-papiers", "Ajoute cette action à la fin : le nombre de pas est copié."],
+  ["Dans ARISE", "Ouvre Pas → « Coller depuis Santé », vérifie, enregistre."],
+];
+
+function StepsGuideSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
+  return (
+    <Sheet open={open} onClose={onClose} title="Synchroniser tes pas" description="iPhone · Apple Santé" size="md" footer={<Button block onClick={onClose}>Compris</Button>}>
+      <div className="space-y-4 text-sm">
+        <ol className="space-y-2.5">
+          {SHORTCUT_STEPS.map(([title, text], i) => (
+            <li key={title} className="flex gap-3">
+              <span className="flex size-6 shrink-0 items-center justify-center rounded-lg bg-arise/15 font-display text-xs font-bold text-arise">{i + 1}</span>
+              <span>
+                <span className="block font-medium text-ink">{title}</span>
+                <span className="block text-xs text-ink-3">{text}</span>
+              </span>
+            </li>
           ))}
-        </div>
-        <p className="text-xs text-ink-3">Astuce : recopie le nombre affiché par ton téléphone ou ta montre. La synchronisation automatique (Apple Santé / Health Connect) est prévue.</p>
+        </ol>
+        <p className="rounded-xl border border-line bg-white/[0.02] p-3 text-xs text-ink-2">
+          Astuce : place le raccourci en widget à côté d&apos;ARISE, ou crée une automatisation (Raccourcis → Automatisation → Heure : 21 h) pour qu&apos;il tourne tout seul. Les libellés peuvent varier selon ta version d&apos;iOS.
+        </p>
+        <p className="text-xs text-ink-3">
+          Pourquoi pas automatiquement ? Une application web ne peut pas lire le podomètre en arrière-plan : Apple Santé et Health Connect (Android) sont réservés aux applications natives. Sur Android, recopie le total de Google Fit ou Samsung Health, ou copie-le puis « Coller ».
+        </p>
       </div>
     </Sheet>
   );

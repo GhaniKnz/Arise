@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { WorkoutSet } from "@/lib/db/types";
-import { bestsFromSets, derivePRs, detectPRs, e1rm, progressionHint } from "../strength";
+import { bestsFromSets, derivePRs, detectPRs, e1rm, gainVsPrevious, progressionHint } from "../strength";
 
 const set = (p: Partial<WorkoutSet>): WorkoutSet => ({
   id: Math.random().toString(),
@@ -53,5 +53,16 @@ describe("strength", () => {
     expect(up?.weightKg).toBe(82.5);
     const same = progressionHint([{ weightKg: 80, reps: 8 }], 8, 10);
     expect(same?.reps).toBe(9);
+  });
+
+  it("compares a set with the same set of the previous session", () => {
+    expect(gainVsPrevious({ weightKg: 80, reps: 8 }, { weightKg: 82.5, reps: 6 })).toEqual({ kind: "weight", amount: 2.5 });
+    expect(gainVsPrevious({ weightKg: 80, reps: 8 }, { weightKg: 80, reps: 10 })).toEqual({ kind: "reps", amount: 2 });
+    expect(gainVsPrevious({ weightKg: 80, reps: 8 }, { weightKg: 80, reps: 8 })).toBeNull();
+    expect(gainVsPrevious({ weightKg: 80, reps: 8 }, { weightKg: 77.5, reps: 12 })).toBeNull();
+    expect(gainVsPrevious(undefined, { weightKg: 80, reps: 8 })).toBeNull();
+    // Bodyweight: reps count, added load counts too.
+    expect(gainVsPrevious({ weightKg: 0, reps: 8 }, { weightKg: 0, reps: 11 }, false)).toEqual({ kind: "reps", amount: 3 });
+    expect(gainVsPrevious({ weightKg: 0, reps: 8 }, { weightKg: 5, reps: 6 }, false)).toEqual({ kind: "weight", amount: 5 });
   });
 });

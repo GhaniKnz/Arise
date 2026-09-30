@@ -1,22 +1,27 @@
 "use client";
 
 import { AnimatePresence, motion } from "motion/react";
-import { ArrowDown, ArrowUp, ChevronLeft, ChevronRight, ListOrdered, Minimize2, Plus, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, ChevronLeft, ChevronRight, ListOrdered, Minimize2, Pencil, Plus, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { useGame } from "@/components/providers/GameProvider";
-import { MuscleIcon } from "@/components/icons/MuscleIcon";
+import { ExerciseIcon, RoutineIcon } from "@/components/icons/ExerciseIcon";
 import { ExerciseBlock } from "@/components/workout/ExerciseBlock";
 import { ExercisePickerSheet } from "@/components/workout/ExercisePickerSheet";
 import { FinishSheet } from "@/components/workout/FinishSheet";
+import { RemoveExerciseSheet } from "@/components/workout/RemoveExerciseSheet";
 import { RestTimerBar } from "@/components/workout/RestTimerBar";
+import { gainLabel } from "@/components/workout/SetRow";
 import { SessionStarter } from "@/components/workout/SessionStarter";
 import { Button, IconButton } from "@/components/ui/Button";
+import { Field, TextInput, Toggle } from "@/components/ui/Fields";
 import { EmptyState, PageSkeleton } from "@/components/ui/Feedback";
 import { Panel } from "@/components/ui/Panel";
 import { Sheet } from "@/components/ui/Sheet";
 import { useActiveSession, useExerciseLibrary, useRoutine, useSessionSets } from "@/lib/db/hooks";
-import { addExerciseToSession, deleteSession, finishSession, removeExerciseFromSession, reorderSessionExercises } from "@/lib/db/repos/workout";
+import { routineColor, routineIcon } from "@/lib/data/routines";
+import { addExerciseToRoutine, addExerciseToSession, blockSets, deleteSession, finishSession, removeExerciseFromRoutine, removeExerciseFromSession, renameSession, reorderSessionExercises, slotAt, syncRoutineFromSession } from "@/lib/db/repos/workout";
+import { db } from "@/lib/db";
 import { useRestTimer } from "@/lib/hooks/useRestTimer";
 import { useSessionHistory } from "@/lib/hooks/useSessionHistory";
 import { cue } from "@/lib/system/feedback";
@@ -26,7 +31,7 @@ import { fmtClock } from "@/lib/utils/format";
 
 export default function SessionPage() {
   const router = useRouter();
-  const { profile } = useGame();
+  const { profile, prs, today } = useGame();
   const session = useActiveSession();
   const sets = useSessionSets(session?.id);
   const routine = useRoutine(session?.routineId);
@@ -39,6 +44,13 @@ export default function SessionPage() {
   const [overview, setOverview] = useState(false);
   const [finishing, setFinishing] = useState(false);
   const [sessionPRs, setSessionPRs] = useState(0);
+  // PR XP is capped at 3 per day (see game.ts); only promise XP that will count.
+  // Finished sessions only: this session's records are tracked in sessionPRs.
+  const prsToday = prs.filter((p) => p.date === today).length;
+  const [renaming, setRenaming] = useState(false);
+  const [removing, setRemoving] = useState<number | null>(null);
+  const [newName, setNewName] = useState("");
+  const [renameRoutine, setRenameRoutine] = useState(true);
 
   useEffect(() => {
     const id = window.setInterval(() => setNow(Date.now()), 1000);
@@ -52,12 +64,13 @@ export default function SessionPage() {
     }
   }, [session]);
 
-  const ids = session?.exerciseIds ?? [];
+  const ids = useMemo(() => session?.exerciseIds ?? [], [session?.exerciseIds]);
   const current = Math.min(index, Math.max(0, ids.length - 1));
   const exerciseId = ids[current];
   const exercise = exerciseId ? byId(exerciseId) : undefined;
-  const exSets = useMemo(() => (sets ?? []).filter((s) => s.exerciseId === exerciseId).sort((a, b) => Number(b.warmup) - Number(a.warmup) || a.order - b.order), [sets, exerciseId]);
-  const routineEx = routine?.exercises.find((e) => e.exerciseId === exerciseId);
+  const slot = slotAt(ids, current);
+  const exSets = useMemo(() => blockSets(sets ?? [], ids, current).sort((a, b) => Number(b.warmup) - Number(a.warmup) || a.order - b.order), [sets, ids, current]);
+  const routineEx = routine?.exercises.filter((e) => e.exerciseId === exerciseId)[slot];
   const repRange: [number, number] = routineEx ? [routineEx.repsMin, routineEx.repsMax] : [8, 12];
   const restSec = routineEx?.restSec ?? exercise?.restSec ?? profile?.restTimerSec ?? 90;
 
@@ -70,20 +83,24 @@ export default function SessionPage() {
             <ChevronLeft />
           </IconButton>
         </div>
-        <SessionStarter onStarted={() => setIndex(0)} onPastCreated={(id) => router.push(`/workout/history/${id}`)} />
+        <SessionStarter onStarted={() => setIndex(0)} onPastCreated={(id) => router.push(`/workout/history/${id}?edit=1`)} />
       </>
     );
 
   const elapsed = (now - new Date(session.startedAt).getTime()) / 1000;
-  const progressOf = (id: string) => {
-    const s = sets.filter((x) => x.exerciseId === id && !x.warmup);
+  const progressOf = (index: number) => {
+    const s = blockSets(sets, ids, index).filter((x) => !x.warmup);
     return [s.filter((x) => x.done).length, s.length] as const;
   };
-  const [doneHere, totalHere] = exerciseId ? progressOf(exerciseId) : [0, 0];
+  const [doneHere, totalHere] = exerciseId ? progressOf(current) : [0, 0];
   const exerciseComplete = totalHere > 0 && doneHere === totalHere;
 
-  const onFinish = async (opts: { rpe?: number; notes?: string }) => {
+  const onFinish = async (opts: { rpe?: number; notes?: string; syncRoutine?: boolean }) => {
     await finishSession(session, opts);
+    if (opts.syncRoutine && routine) {
+      await syncRoutineFromSession(session, await db.sets.where("sessionId").equals(session.id).toArray());
+      toast({ tone: "success", title: `Programme « ${routine.name} » mis à jour`, message: "Il reprend les exercices de cette séance." });
+    }
     timer.skip();
     cue("levelup");
     toast({ tone: "quest", title: "Séance terminée", message: session.name, xp: 100 });
@@ -102,10 +119,23 @@ export default function SessionPage() {
         <IconButton label="Réduire (la séance continue)" onClick={() => router.push("/")}>
           <Minimize2 />
         </IconButton>
-        <div className="min-w-0 flex-1 text-center">
-          <p className="truncate font-display text-sm font-semibold tracking-wide text-ink">{session.name}</p>
-          <p className="font-display text-lg leading-none font-bold text-good tabular">{fmtClock(elapsed)}</p>
-        </div>
+        <button
+          type="button"
+          className="group min-w-0 flex-1 text-center"
+          onClick={() => {
+            setNewName(session.name);
+            setRenameRoutine(!!routine);
+            setRenaming(true);
+          }}
+          aria-label={`Renommer la séance ${session.name}`}
+        >
+          <span className="flex items-center justify-center gap-1.5">
+            <RoutineIcon icon={routineIcon(session)} color={routineColor(session)} className="size-4" />
+            <span className="truncate font-display text-sm font-semibold tracking-wide text-ink">{session.name}</span>
+            <Pencil className="size-3 shrink-0 text-ink-3 transition group-hover:text-arise" />
+          </span>
+          <span className="block font-display text-lg leading-none font-bold text-good tabular">{fmtClock(elapsed)}</span>
+        </button>
         <IconButton label="Vue d'ensemble des exercices" onClick={() => setOverview(true)}>
           <ListOrdered />
         </IconButton>
@@ -118,11 +148,12 @@ export default function SessionPage() {
         <nav className="-mx-4 mb-4 flex gap-1.5 overflow-x-auto px-4 pb-1 no-scrollbar" aria-label="Exercices de la séance">
           {ids.map((id, i) => {
             const ex = byId(id);
-            const [d, t] = progressOf(id);
+            const [d, t] = progressOf(i);
             const complete = t > 0 && d === t;
+            const n = slotAt(ids, i);
             return (
               <button
-                key={id}
+                key={`${id}-${n}`}
                 type="button"
                 onClick={() => setIndex(i)}
                 aria-current={i === current ? "step" : undefined}
@@ -131,8 +162,9 @@ export default function SessionPage() {
                   i === current ? "border-arise/60 bg-arise/15 text-ink" : complete ? "border-good/40 bg-good/10 text-ink-2" : "border-line bg-deep/60 text-ink-3",
                 )}
               >
-                {ex && <MuscleIcon primary={ex.primary} className="h-5 w-4" />}
+                {ex && <ExerciseIcon exercise={ex} className="h-5 w-4" />}
                 <span className="max-w-28 truncate">{ex?.name ?? "?"}</span>
+                {n > 0 && <span className="rounded bg-violet/20 px-1 text-[10px] font-bold text-violet-2">×{n + 1}</span>}
                 <span className="tabular opacity-70">
                   {d}/{t}
                 </span>
@@ -144,22 +176,27 @@ export default function SessionPage() {
 
       {exercise ? (
         <AnimatePresence mode="wait">
-          <motion.div key={exercise.id} initial={{ opacity: 0, x: 24 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -24 }} transition={{ duration: 0.22 }}>
+          <motion.div key={`${exercise.id}-${slot}`} initial={{ opacity: 0, x: 24 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -24 }} transition={{ duration: 0.22 }}>
             <Panel>
               <ExerciseBlock
                 session={session}
                 exercise={exercise}
+                slot={slot}
+                onRemove={() => setRemoving(current)}
                 sets={exSets}
                 history={history?.get(exercise.id)}
                 repRange={repRange}
-                onSetCompleted={({ prs, values }) => {
+                onSetCompleted={({ prs, gain, beat, values }) => {
                   cue("set");
                   const remainingSets = sets.filter((s) => !s.done && !s.warmup).length - 1;
                   if (remainingSets > 0) timer.start(restSec);
                   if (prs.length) {
                     setSessionPRs((n) => n + 1);
                     cue("pr");
-                    showOverlay({ kind: "pr", exercise: exercise.name, weightKg: values.weightKg, reps: values.reps, kinds: prs, weighted: exercise.weighted || values.weightKg > 0 });
+                    showOverlay({ kind: "pr", exercise: exercise.name, weightKg: values.weightKg, reps: values.reps, kinds: prs, weighted: exercise.weighted || values.weightKg > 0, beat, xp: prsToday + sessionPRs < 3 ? 40 : undefined });
+                  } else if (gain) {
+                    cue("quest");
+                    toast({ tone: "quest", title: `Progression : ${gainLabel(gain)}`, message: `${exercise.name} · mieux que la dernière séance` });
                   }
                 }}
               />
@@ -193,9 +230,15 @@ export default function SessionPage() {
       <ExercisePickerSheet
         open={picking}
         onClose={() => setPicking(false)}
-        exclude={ids}
-        onPick={async (e) => {
-          await addExerciseToSession(session, e.id, 3, 8);
+        added={ids}
+        routineName={routine?.name}
+        onPick={async (e, { alsoRoutine }) => {
+          const compound = e.mechanic === "compound";
+          await addExerciseToSession(session, e.id, 3, compound ? 6 : 10);
+          if (alsoRoutine && routine) {
+            await addExerciseToRoutine(routine.id, { exerciseId: e.id, sets: 3, repsMin: compound ? 6 : 10, repsMax: compound ? 10 : 15, restSec: e.restSec });
+            toast({ tone: "success", title: "Exercice ajouté", message: `${e.name} · aussi dans le programme « ${routine.name} »` });
+          }
           setIndex(ids.length);
         }}
       />
@@ -204,17 +247,21 @@ export default function SessionPage() {
         <ul className="space-y-2">
           {ids.map((id, i) => {
             const ex = byId(id);
-            const [d, t] = progressOf(id);
+            const [d, t] = progressOf(i);
+            const n = slotAt(ids, i);
             const move = (dir: -1 | 1) => {
               const next = [...ids];
               [next[i], next[i + dir]] = [next[i + dir], next[i]];
               void reorderSessionExercises(session, next);
             };
             return (
-              <li key={id} className="flex items-center gap-2 rounded-xl border border-line bg-white/[0.02] p-2">
-                {ex && <MuscleIcon primary={ex.primary} secondary={ex.secondary} className="h-10 w-7" />}
+              <li key={`${id}-${n}`} className="flex items-center gap-2 rounded-xl border border-line bg-white/[0.02] p-2">
+                {ex && <ExerciseIcon exercise={ex} className="h-10 w-7" />}
                 <button type="button" className="min-w-0 flex-1 text-left" onClick={() => { setIndex(i); setOverview(false); }}>
-                  <span className="block truncate text-sm font-medium text-ink">{ex?.name}</span>
+                  <span className="block truncate text-sm font-medium text-ink">
+                    {ex?.name}
+                    {n > 0 && <span className="ml-1.5 rounded bg-violet/20 px-1 text-[10px] font-bold text-violet-2">×{n + 1}</span>}
+                  </span>
                   <span className="text-[11px] text-ink-3">
                     {d}/{t} séries
                   </span>
@@ -225,7 +272,7 @@ export default function SessionPage() {
                 <IconButton label="Descendre" size="sm" disabled={i === ids.length - 1} onClick={() => move(1)}>
                   <ArrowDown />
                 </IconButton>
-                <IconButton label={`Retirer ${ex?.name ?? "l'exercice"}`} size="sm" onClick={() => removeExerciseFromSession(session, id)}>
+                <IconButton label={`Retirer ${ex?.name ?? "l'exercice"}`} size="sm" onClick={() => setRemoving(i)}>
                   <Trash2 />
                 </IconButton>
               </li>
@@ -234,7 +281,53 @@ export default function SessionPage() {
         </ul>
       </Sheet>
 
-      <FinishSheet open={finishing} onClose={() => setFinishing(false)} sets={sets} elapsedSec={elapsed} prCount={sessionPRs} onFinish={onFinish} onDiscard={onDiscard} />
+      <Sheet
+        open={renaming}
+        onClose={() => setRenaming(false)}
+        title="Renommer la séance"
+        size="sm"
+        footer={
+          <Button
+            block
+            disabled={!newName.trim()}
+            onClick={async () => {
+              await renameSession(session, newName.trim(), renameRoutine && !!routine);
+              setRenaming(false);
+              toast({ tone: "success", title: "Séance renommée", message: newName.trim() });
+            }}
+          >
+            Enregistrer
+          </Button>
+        }
+      >
+        <div className="space-y-4">
+          <Field label="Nom">
+            <TextInput value={newName} onChange={(e) => setNewName(e.target.value)} autoFocus placeholder="Ex. Push lourd" />
+          </Field>
+          {routine && <Toggle checked={renameRoutine} onChange={setRenameRoutine} label={`Renommer aussi le programme « ${routine.name} »`} description="Les prochaines séances porteront ce nom" />}
+        </div>
+      </Sheet>
+
+      {removing != null && ids[removing] && (
+        <RemoveExerciseSheet
+          open
+          onClose={() => setRemoving(null)}
+          exerciseName={byId(ids[removing])?.name ?? "l'exercice"}
+          setCount={blockSets(sets, ids, removing).length}
+          routineName={routine && routine.exercises.filter((e) => e.exerciseId === ids[removing]).length > slotAt(ids, removing) ? routine.name : undefined}
+          onConfirm={async (alsoRoutine) => {
+            const idx = removing;
+            const exId = ids[idx];
+            const occurrence = slotAt(ids, idx);
+            await removeExerciseFromSession(session, idx);
+            if (alsoRoutine && routine) await removeExerciseFromRoutine(routine.id, exId, occurrence);
+            setIndex((i) => Math.max(0, Math.min(i, ids.length - 2)));
+            toast({ tone: "system", title: "Exercice retiré", message: alsoRoutine && routine ? `Aussi du programme « ${routine.name} »` : undefined });
+          }}
+        />
+      )}
+
+      <FinishSheet open={finishing} onClose={() => setFinishing(false)} sets={sets} elapsedSec={elapsed} prCount={sessionPRs} onFinish={onFinish} onDiscard={onDiscard} session={session} routine={routine ?? undefined} />
     </div>
   );
 }

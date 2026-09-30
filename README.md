@@ -8,12 +8,21 @@ Tout fonctionne **sans compte et hors ligne** : les données vivent dans le navi
 
 | Module | Contenu |
 | --- | --- |
-| **Dashboard** | Objectif de poids, anneau calories + barres macros, quêtes du jour, score quotidien, séance prévue, tendance de poids, conseil du jour, série (streak) |
-| **Nutrition** | Journal par repas, base de ~180 aliments FR + Open Food Facts, **Nutrition Score contextuel** (selon ton objectif, pas « bon/mauvais »), favoris/récents, repas enregistrés, recettes, **scan code-barres**, **photo de repas → estimation IA modifiable**, copie du repas de la veille |
-| **Workout** | Calendrier de la semaine, programmes (Push/Pull/Legs/Upper…), bibliothèque de ~70 exercices avec muscles ciblés, **mode focus** (séries/reps/charge, perf précédente, minuteur de repos, détection de records), historique, e1RM et progression |
+| **Dashboard** | **Donjon de l'objectif** (barre de progression avec boss de palier), anneau calories + macros, quêtes du jour, score quotidien, séance prévue, tendance de poids, conseil du jour, série (streak) |
+| **Nutrition** | Journal par repas, base de ~200 aliments FR + Open Food Facts, **Nutrition Score contextuel** (selon ton objectif, pas « bon/mauvais »), favoris/récents, repas enregistrés, **scan code-barres**, **photo de repas → estimation IA (Gemini ou Claude) modifiable, avec mémoire** (produits réutilisés sans doublon, plats enregistrés dans « Repas »), copie du repas de la veille |
+| **Recettes** | **36 recettes faciles avec photo** : macros par portion calculées, portions ajustables, ingrédients (rayon, format, **prix indicatifs discount / supermarché**, **prix réels relevés en magasin via Open Prices**, ton propre prix), ustensiles, étapes avec minuteurs et températures, astuces, conservation, **liste de courses** copiable, ajout au journal en un tap |
+| **Workout** | Séances **entièrement personnalisables** (nom, icône, couleur, exercices, nombre de séries), splits prêts à l'emploi (Push/Pull 4 j, Upper/Lower, PPL…), planning de la semaine, bibliothèque de ~70 exercices **modifiables** (nom, icône, muscles, équipement, **instructions « comment le faire » et conseils**, notes) + exercices perso, **23 silhouettes de mouvements** (squat, couché, tractions…) suggérées d'après le nom, **mode focus** (perf précédente, minuteur de repos, effets de progression et de record), ajout/retrait d'exercices en cours de séance (avec option « aussi dans le programme » et mise à jour du programme en fin de séance), suppression d'une série (bouton « − Série » ou glisser vers la gauche, avec annulation), **correction des séances passées** (poids, reps, séries, exercices, nom, date, heure, durée, RPE), **ajout des séances oubliées** depuis l'historique (préremplies avec la perf précédant ce jour, rappel des séances prévues non notées), historique complet par mois, e1RM |
 | **Progress** | Poids + moyenne 7 jours, tendance, **maintenance adaptative**, projection de sèche, composition corporelle, mensurations, **photos avant/après** (curseur de comparaison) |
 | **Système** | Statut (niveau, rang, stats STR/END/ACT/DISC/REC/NUT, succès), calendrier heatmap de discipline, analytics (corrélations), rapport hebdo (+ analyse IA), **coach ARISE AI**, Knowledge (21 fiches avec sources scientifiques) |
 | **Réglages** | Profil, objectifs (auto ou manuels), quêtes, préférences (sons, vibrations, effets), clé IA, compte/sync, export JSON/CSV, import, suppression |
+
+## Pas réels (Apple Santé)
+
+Une application web ne peut pas lire le podomètre du téléphone en arrière-plan (Apple Santé et Health Connect sont réservés aux apps natives). ARISE propose donc :
+
+- **iPhone** : un Raccourci « ARISE pas » (Rechercher des échantillons de santé → Nombre de pas aujourd'hui → Somme → Copier) puis, dans ARISE, **Pas → « Coller depuis Santé »**. Le guide pas à pas est dans l'app.
+- **Lien** : ouvrir `/?pas=8432` (option `&date=2026-09-29`) pré-remplit la saisie, pratique avec une automatisation.
+- **Saisie manuelle** partout ailleurs.
 
 ## Démarrage rapide
 
@@ -43,12 +52,17 @@ Copie `.env.example` en `.env.local` et remplis ce dont tu as besoin. **Aucune v
 
 | Variable | Effet |
 | --- | --- |
-| `ANTHROPIC_API_KEY` | Active l'IA côté serveur (photo de repas, coach, rapport hebdo). Sans elle, chaque utilisateur peut saisir sa propre clé dans Réglages → IA (stockée seulement dans son navigateur). |
+| `GEMINI_API_KEY` | Clé **Google Gemini** (offre gratuite, créée sur [AI Studio](https://aistudio.google.com/apikey)). Utilisée en priorité pour l'estimation des repas en photo, et pour le coach/rapport s'il n'y a pas de clé Claude. Sans variable serveur, chaque utilisateur peut coller sa clé dans Réglages → IA (stockée seulement dans son navigateur). |
+| `ARISE_GEMINI_MODELS` | Modèles Gemini essayés dans l'ordre (défaut : `gemini-3.5-flash,gemini-3.5-flash-lite,gemini-2.5-flash-lite`) : quand le quota gratuit du premier est épuisé, le suivant prend le relais. |
+| `ANTHROPIC_API_KEY` | Active Claude côté serveur (coach, rapport hebdo, photo si choisi). Même principe de clé personnelle possible dans Réglages → IA. |
+| `ARISE_AI_PROVIDER` | `auto` (défaut : Gemini pour les photos, Claude pour le coach s'il est configuré), `gemini` ou `claude`. |
 | `ARISE_ACCESS_CODE` | Recommandé si l'app est publique avec une clé serveur : les routes IA exigent ce code (à saisir dans Réglages → IA). |
 | `ARISE_AI_MODEL` | Modèle Claude utilisé (défaut : `claude-opus-5-5`). |
 | `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Active le compte et la synchronisation multi-appareils. |
 
-> L'IA utilise le repli côté serveur de l'API Claude (`fallbacks: "default"`) : si le modèle principal refuse une requête, l'API peut la relancer automatiquement sur un modèle de secours. Les estimations restent indicatives et toujours modifiables avant validation.
+> **Quota gratuit Gemini** : Google limite le nombre de requêtes par jour et par projet (remise à zéro à minuit, heure du Pacifique) ; les chiffres exacts de ton projet sont sur [aistudio.google.com/rate-limit](https://aistudio.google.com/rate-limit). En offre gratuite, Google peut utiliser les contenus envoyés pour améliorer ses produits.
+>
+> Côté Claude, ARISE utilise le repli côté serveur de l'API (`fallbacks: "default"`) : si le modèle principal refuse une requête, l'API peut la relancer automatiquement sur un modèle de secours. Les estimations restent indicatives et toujours modifiables avant validation.
 
 ## Synchronisation cloud (optionnel)
 
@@ -79,6 +93,8 @@ Voir [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) : choix techniques, modèle 
 Stack : Next.js 16 (App Router) · React 19 · TypeScript · Tailwind CSS 4 · Motion · Recharts · Dexie (IndexedDB) · Zod · Claude API (`@anthropic-ai/sdk`) · Supabase · ZXing (code-barres).
 
 ## Données & sources
+
+- Recettes : photos sous licence Creative Commons (Flickr / Wikimedia Commons via Openverse), auteur et licence affichés sur chaque fiche. Prix indicatifs = estimations 2026 à comparer, pas des tarifs officiels ; les prix « relevés en magasin » viennent d'[Open Prices](https://prices.openfoodfacts.org) (Open Food Facts, licence ODbL), médiane par enseigne sur 6 mois en France.
 
 - Valeurs nutritionnelles de référence : tables CIQUAL (ANSES) et USDA ; produits du commerce : [Open Food Facts](https://world.openfoodfacts.org) (licence ODbL).
 - Les fiches Knowledge citent leurs sources (auteurs, année, revue, type d'étude) avec un lien de recherche PubMed.

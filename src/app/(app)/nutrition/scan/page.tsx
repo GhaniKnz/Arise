@@ -1,37 +1,32 @@
 "use client";
 
 import { AnimatePresence, motion } from "motion/react";
-import { ArrowLeft, Camera, ImageUp, Plus, RotateCcw, Sparkles, UtensilsCrossed, X } from "lucide-react";
+import { ArrowLeft, BookmarkCheck, Camera, History, ImageUp, Package, Plus, RotateCcw, Sparkles, UtensilsCrossed, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useMemo, useRef, useState } from "react";
 import { FoodPickerSheet } from "@/components/nutrition/FoodPickerSheet";
 import { Button, IconButton } from "@/components/ui/Button";
-import { Field, NumberInput, Segmented, TextInput } from "@/components/ui/Fields";
+import { Field, NumberInput, Segmented, TextInput, Toggle } from "@/components/ui/Fields";
 import { Badge, ErrorBox, Notice, PageSkeleton } from "@/components/ui/Feedback";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Panel } from "@/components/ui/Panel";
 import { ApiError } from "@/lib/api";
 import type { MealAnalysis } from "@/lib/ai/schemas";
 import { addToNewDraft, photoPart } from "@/lib/db/repos/dishDraft";
-import { logIngredients } from "@/lib/db/repos/nutrition";
+import { logIngredients, rememberMeal, rememberProducts } from "@/lib/db/repos/nutrition";
 import { useToday } from "@/lib/db/hooks";
-import type { Ingredient, MealSlot } from "@/lib/db/types";
+import type { MealSlot, SavedMeal } from "@/lib/db/types";
 import { foodToIngredient, MEAL_SLOTS, mealForHour } from "@/lib/domain/nutrition";
-import { analysisToIngredients, analyzeMealPhoto, photoThumb } from "@/lib/food/mealPhoto";
+import { analysisToItems, analyzeMealPhoto, normName, photoItemsToIngredients, photoThumb, type PhotoItem } from "@/lib/food/mealPhoto";
 import { useBlobUrl } from "@/lib/hooks/useBlobUrl";
 import { cue } from "@/lib/system/feedback";
 import { toast } from "@/lib/system/store";
 import { fmtDec, fmtInt } from "@/lib/utils/format";
 
-interface EditableItem {
-  key: string;
-  ingredient: Ingredient;
-}
+type EditableItem = PhotoItem;
 
 const CONF_META = { high: ["Fiable", "#34d399"], medium: ["Moyen", "#fbbf24"], low: ["Incertain", "#f87171"] } as const;
-
-const analysisToItems = (a: MealAnalysis): EditableItem[] => analysisToIngredients(a).map((ingredient, i) => ({ key: `${i}-${ingredient.name}`, ingredient }));
 
 function ScanScreen() {
   const router = useRouter();
@@ -47,6 +42,10 @@ function ScanScreen() {
   const [analysis, setAnalysis] = useState<MealAnalysis | null>(null);
   const [items, setItems] = useState<EditableItem[]>([]);
   const [picking, setPicking] = useState(false);
+  const [kind, setKind] = useState<"dish" | "products">("dish");
+  const [dishName, setDishName] = useState("");
+  const [knownMeal, setKnownMeal] = useState<SavedMeal | null>(null);
+  const [remember, setRemember] = useState(true);
   const cameraRef = useRef<HTMLInputElement>(null);
   const galleryRef = useRef<HTMLInputElement>(null);
 
@@ -67,14 +66,19 @@ function ScanScreen() {
     setLoading(true);
     setError(null);
     try {
-      const result = await analyzeMealPhoto(file, note);
-      if (!result.is_food || result.items.length === 0) {
+      const { analysis: a, mem } = await analyzeMealPhoto(file, note);
+      if (!a.is_food || a.items.length === 0) {
         setError("Aucun aliment détecté sur cette photo. Essaie avec le repas bien visible, vu de dessus.");
         return;
       }
       cue("quest");
-      setAnalysis(result);
-      setItems(analysisToItems(result));
+      const meal = mem ? ((a.known_meal_id && mem.mealsById.get(a.known_meal_id)) || mem.mealsByName.get(normName(a.meal_name)) || null) : null;
+      setAnalysis(a);
+      setKind(a.kind);
+      setDishName(meal?.name ?? a.meal_name);
+      setKnownMeal(meal);
+      setRemember(true);
+      setItems(analysisToItems(a, mem));
     } catch (e) {
       setError(e instanceof ApiError ? e.message : "Analyse impossible.");
     } finally {
@@ -87,14 +91,27 @@ function ScanScreen() {
     setAnalysis(null);
     setItems([]);
     setError(null);
+    setKnownMeal(null);
   };
 
   const save = async () => {
     const valid = items.filter((i) => i.ingredient.grams > 0);
     if (!valid.length) return;
-    await logIngredients({ date, meal: slot, items: valid.map((i) => i.ingredient), source: "photo" });
+    let ingredients = valid.map((i) => i.ingredient);
+    const notes: string[] = [];
+    if (remember && kind === "products") {
+      const before = ingredients.filter((i) => !i.foodId).length;
+      const ids = await rememberProducts(ingredients);
+      ingredients = ingredients.map((it, i) => ({ ...it, foodId: ids[i] ?? it.foodId }));
+      if (before) notes.push(`${before} produit${before > 1 ? "s" : ""} mémorisé${before > 1 ? "s" : ""}`);
+    }
+    if (remember && kind === "dish" && !knownMeal && dishName.trim()) {
+      const [, created] = await rememberMeal(dishName, ingredients, slot);
+      notes.push(created ? "plat enregistré dans Mes plats" : "plat déjà dans Mes plats");
+    }
+    await logIngredients({ date, meal: slot, items: ingredients, source: "photo" });
     cue("set");
-    toast({ tone: "success", title: "Repas ajouté", message: `${fmtInt(totals.kcal)} kcal · ${MEAL_SLOTS.find((m) => m.id === slot)?.label}` });
+    toast({ tone: "success", title: "Repas ajouté", message: [`${fmtInt(totals.kcal)} kcal · ${MEAL_SLOTS.find((m) => m.id === slot)?.label}`, ...notes].join(" · ") });
     router.push(`/nutrition${date !== today ? `?date=${date}` : ""}`);
   };
 
@@ -103,7 +120,7 @@ function ScanScreen() {
     const valid = items.filter((i) => i.ingredient.grams > 0);
     if (!valid.length || !analysis) return;
     const thumb = file ? await photoThumb(file).catch(() => undefined) : undefined;
-    await addToNewDraft(photoPart(analysis.meal_name, valid.map((i) => i.ingredient), thumb));
+    await addToNewDraft(photoPart(dishName.trim() || analysis.meal_name, photoItemsToIngredients(valid), thumb));
     router.push(`/nutrition/compose?meal=${slot}&date=${date}`);
   };
 
@@ -211,6 +228,40 @@ function ScanScreen() {
             <strong>Estimation IA</strong> — vérifie les quantités pour améliorer la précision. {analysis.notes}
           </Notice>
 
+          <Panel className="space-y-3">
+            <Segmented
+              value={kind}
+              onChange={setKind}
+              size="sm"
+              ariaLabel="Type de repas"
+              options={[
+                { value: "dish", label: "Plat composé", icon: <UtensilsCrossed /> },
+                { value: "products", label: "Produits séparés", icon: <Package /> },
+              ]}
+            />
+            {kind === "dish" ? (
+              knownMeal ? (
+                <p className="flex items-center gap-2 rounded-xl border border-good/30 bg-good/10 px-3 py-2 text-sm text-ink">
+                  <BookmarkCheck className="size-4 shrink-0 text-good" /> Déjà dans tes plats : <strong className="truncate">{knownMeal.name}</strong>
+                </p>
+              ) : (
+                <>
+                  <Field label="Nom du plat">
+                    <TextInput value={dishName} onChange={(e) => setDishName(e.target.value)} placeholder="Ex. Assiette de curry poulet" />
+                  </Field>
+                  <Toggle checked={remember} onChange={setRemember} label="Enregistrer ce plat dans Mes plats" description="Il sera reconnu à la prochaine photo, et ajoutable en un tap" />
+                </>
+              )
+            ) : (
+              <Toggle
+                checked={remember}
+                onChange={setRemember}
+                label="Mémoriser les nouveaux produits"
+                description={`Ajoutés à Mes aliments sans doublon (${items.filter((i) => !i.known).length} nouveau${items.filter((i) => !i.known).length > 1 ? "x" : ""}, ${items.filter((i) => i.known).length} déjà connu${items.filter((i) => i.known).length > 1 ? "s" : ""})`}
+              />
+            )}
+          </Panel>
+
           <ul className="space-y-2">
             {items.map((it, i) => {
               const f = it.ingredient.grams / 100;
@@ -225,7 +276,13 @@ function ScanScreen() {
                     />
                     <p className="flex items-center gap-2 px-1 text-[11px] text-ink-3">
                       {fmtInt(it.ingredient.per100.kcal * f)} kcal · P {fmtDec(it.ingredient.per100.protein * f)} · G {fmtDec(it.ingredient.per100.carbs * f)} · L {fmtDec(it.ingredient.per100.fat * f)}
-                      {it.ingredient.confidence && <Badge color={CONF_META[it.ingredient.confidence][1]}>{CONF_META[it.ingredient.confidence][0]}</Badge>}
+                      {it.known ? (
+                        <Badge color="#34d399">
+                          <History className="mr-0.5 inline size-3" /> Connu
+                        </Badge>
+                      ) : (
+                        it.confidence && <Badge color={CONF_META[it.confidence][1]}>{CONF_META[it.confidence][0]}</Badge>
+                      )}
                     </p>
                   </div>
                   <NumberInput

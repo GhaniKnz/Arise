@@ -18,6 +18,7 @@
   --color-violet: #8b5cf6;
   --color-violet-2: #a78bfa;
   --color-rose: #f472b6;
+  --color-boss: #fb4f6e;
 
   --color-good: #34d399;
   --color-warn: #fbbf24;
@@ -67,6 +68,8 @@ html {
   background: var(--color-void);
   -webkit-tap-highlight-color: transparent;
   text-size-adjust: 100%;
+  /* No double-tap or pinch zoom (pan and scroll still work). */
+  touch-action: pan-x pan-y;
 }
 
 body {
@@ -170,7 +173,7 @@ input[type="number"] {
   overflow: hidden;
 }
 
-.art-card > :not(.art-card__art) {
+.art-card > :not(.art-card__art, .fx-sweep) {
   position: relative;
   z-index: 1;
 }
@@ -434,6 +437,221 @@ input[type="number"] {
 [data-effects="reduced"] .panel {
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
+}
+
+/* ───────── Effects ───────── */
+
+/* Light sweep crossing a card every few seconds (use on an absolutely positioned child). */
+.fx-sweep {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: inherit;
+  pointer-events: none;
+}
+.fx-sweep::before {
+  content: "";
+  position: absolute;
+  top: -50%;
+  bottom: -50%;
+  left: -60%;
+  width: 45%;
+  background: linear-gradient(100deg, transparent 0%, rgb(160 200 255 / 0.02) 30%, rgb(190 220 255 / 0.13) 50%, rgb(160 200 255 / 0.02) 70%, transparent 100%);
+  transform: skewX(-18deg);
+  animation: sweep var(--sweep-duration, 7s) ease-in-out var(--sweep-delay, 1.2s) infinite;
+}
+@keyframes sweep {
+  0% {
+    left: -60%;
+  }
+  22%,
+  100% {
+    left: 130%;
+  }
+}
+
+/* Soft breathing glow for pictograms (color = currentColor). */
+.icon-glow {
+  animation: icon-glow 3.2s ease-in-out infinite;
+}
+@keyframes icon-glow {
+  0%,
+  100% {
+    filter: drop-shadow(0 0 1px currentColor);
+  }
+  50% {
+    filter: drop-shadow(0 0 6px currentColor);
+  }
+}
+
+/* Flickering flame (streak). */
+.flame-flicker {
+  transform-origin: 50% 90%;
+  animation: flicker 1.8s ease-in-out infinite;
+  filter: drop-shadow(0 0 4px rgb(251 191 36 / 0.8));
+}
+@keyframes flicker {
+  0%,
+  100% {
+    transform: scale(1) rotate(0deg);
+  }
+  25% {
+    transform: scale(1.08, 0.95) rotate(-3deg);
+  }
+  50% {
+    transform: scale(0.96, 1.07) rotate(2deg);
+    filter: drop-shadow(0 0 8px rgb(251 191 36 / 0.95));
+  }
+  75% {
+    transform: scale(1.05, 0.97) rotate(-1deg);
+  }
+}
+
+/* Animated gradient text. */
+.text-shimmer {
+  background: linear-gradient(100deg, #cfe6ff 0%, #4da3ff 25%, #ffffff 45%, #a78bfa 65%, #cfe6ff 100%);
+  background-size: 220% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: text-shimmer 5s linear infinite;
+}
+@keyframes text-shimmer {
+  to {
+    background-position: -220% 0;
+  }
+}
+
+/* Scanning light along the bottom edge of the top bar. */
+.scanline {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 1px;
+  overflow: hidden;
+  pointer-events: none;
+}
+.scanline::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgb(77 163 255 / 0.25), transparent);
+}
+.scanline::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 35%;
+  left: -35%;
+  background: linear-gradient(90deg, transparent, #4da3ff, #a78bfa, transparent);
+  box-shadow: 0 0 12px #4da3ff;
+  animation: scan 4.5s ease-in-out infinite;
+}
+@keyframes scan {
+  0% {
+    left: -35%;
+  }
+  60%,
+  100% {
+    left: 100%;
+  }
+}
+
+/* Pulsing aura for the logo / rank badge. */
+.aura {
+  animation: aura 3.6s ease-in-out infinite;
+}
+@keyframes aura {
+  0%,
+  100% {
+    filter: drop-shadow(0 0 2px color-mix(in srgb, var(--aura, #4da3ff) 45%, transparent));
+  }
+  50% {
+    filter: drop-shadow(0 0 9px var(--aura, #4da3ff)) drop-shadow(0 0 2px rgb(167 139 250 / 0.8));
+  }
+}
+
+/* Rotating luminous ring (wrap a round/square element). */
+.ring-spin {
+  position: relative;
+  isolation: isolate;
+}
+.ring-spin::before {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border-radius: inherit;
+  background: conic-gradient(from var(--glow-angle, 0deg), transparent 0deg, var(--ring-color, #4da3ff) 80deg, transparent 160deg, transparent 360deg);
+  animation: glow-rotate 3.5s linear infinite;
+  z-index: -1;
+}
+
+/* Interactive cards: lift + glow on hover (pointer devices), press on touch. */
+.card-hover {
+  transition:
+    transform 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 0.25s,
+    box-shadow 0.25s;
+}
+@media (hover: hover) {
+  .card-hover:hover {
+    transform: translateY(-2px);
+    border-color: rgb(77 163 255 / 0.45);
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.05),
+      0 14px 34px -14px rgb(0 0 0 / 0.7),
+      0 0 26px -10px rgb(77 163 255 / 0.55);
+  }
+}
+.card-hover:active {
+  transform: scale(0.99);
+}
+
+/* Gold flash for a new record on a set row. */
+.pr-flash {
+  animation: pr-flash 1.6s ease-out 1;
+}
+@keyframes pr-flash {
+  0% {
+    box-shadow: 0 0 0 0 rgb(245 185 74 / 0.9);
+    background-color: rgb(245 185 74 / 0.35);
+  }
+  60% {
+    box-shadow: 0 0 0 10px rgb(245 185 74 / 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgb(245 185 74 / 0);
+    background-color: rgb(245 185 74 / 0.08);
+  }
+}
+
+/* Floating sparkles (decorative dots). */
+.sparkle {
+  animation: sparkle 2.4s ease-in-out infinite;
+}
+@keyframes sparkle {
+  0%,
+  100% {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+[data-effects="reduced"] .fx-sweep::before,
+[data-effects="reduced"] .icon-glow,
+[data-effects="reduced"] .flame-flicker,
+[data-effects="reduced"] .text-shimmer,
+[data-effects="reduced"] .scanline::after,
+[data-effects="reduced"] .aura,
+[data-effects="reduced"] .ring-spin::before,
+[data-effects="reduced"] .sparkle {
+  animation: none;
 }
 
 /* Recharts polish */

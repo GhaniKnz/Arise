@@ -262,6 +262,23 @@ export const FOODS: FoodItem[] = [
   f("whey", "Whey protéine", "supplements", [380, 78, 7, 5.5, 0.5, 5, 3.5, 0.5], 4, 30, { portions: [P("1 dose", 30)], keywords: ["whey", "protéine", "shake", "isolat"] }),
   f("casein", "Caséine", "supplements", [360, 80, 5, 2, 1, 3, 1.2, 0.5], 4, 30, { portions: [P("1 dose", 30)], keywords: ["caséine", "protéine"] }),
   f("creatine", "Créatine monohydrate", "supplements", [0, 0, 0, 0, 0, 0, 0, 0], 3, 5, { portions: [P("1 dose", 5)], keywords: ["créatine", "creatine"] }),
+
+  /* ── Cuisine & épicerie (recettes) ── */
+  f("garlic", "Ail", "vegetables", [131, 5.8, 24.3, 0.5, 4.7, 1, 0.1, 0.03], 1, 5, { portions: [P("1 gousse", 5)], keywords: ["ail", "gousse"] }),
+  f("lemon", "Citron (jus)", "fruits", [26, 0.4, 7, 0.2, 0.3, 2.5, 0, 0], 1, 30, { portions: [P("jus d'1 citron", 40)], keywords: ["citron", "jus de citron", "lime", "citron vert"] }),
+  f("ginger", "Gingembre frais", "vegetables", [80, 1.8, 15.8, 0.8, 2, 1.7, 0.2, 0.03], 1, 10, { keywords: ["gingembre"] }),
+  f("herbs", "Herbes fraîches (persil, coriandre, basilic)", "vegetables", [36, 3, 3.5, 0.8, 3.3, 0.9, 0.1, 0.1], 1, 5, { keywords: ["persil", "coriandre", "basilic", "ciboulette", "menthe"] }),
+  f("spices", "Épices (curry, paprika, cumin…)", "other", [325, 13, 35, 14, 30, 2.5, 2, 0.1], 2, 3, { portions: [P("1 c. à café", 2)], keywords: ["curry", "paprika", "cumin", "cannelle", "garam masala", "épices"] }),
+  f("stock_cube", "Bouillon cube", "sauces", [240, 10, 20, 13, 0, 2, 6, 50], 4, 10, { portions: [P("1 cube", 10)], keywords: ["bouillon", "cube"] }),
+  f("coconut_milk_light", "Lait de coco allégé", "fats", [75, 0.7, 2.5, 7, 0, 1.5, 6.2, 0.05], 3, 100, { unit: "ml", keywords: ["coco", "lait de coco"] }),
+  f("crushed_tomatoes", "Tomates concassées (conserve)", "vegetables", [24, 1.2, 3.8, 0.2, 1.2, 3.5, 0, 0.25], 3, 100, { keywords: ["tomates", "concassées", "pelées", "passata", "pulpe"] }),
+  f("red_lentils_dry", "Lentilles corail (sèches)", "legumes", [343, 24, 50, 1.5, 11, 2, 0.2, 0.02], 1, 60, { keywords: ["lentilles", "corail", "dahl"], micros: ["Fer", "Folates", "Magnésium"] }),
+  f("noodles_cooked", "Nouilles de blé (cuites)", "grains", [138, 4.5, 25, 2, 1.2, 0.4, 0.4, 0.05], 2, 200, { keywords: ["nouilles", "noodles", "ramen"] }),
+  f("cocoa_powder", "Cacao en poudre non sucré", "sweets", [360, 20, 13, 21, 33, 1, 13, 0.05], 2, 10, { portions: [P("1 c. à soupe", 7)], keywords: ["cacao"] }),
+  f("tahini", "Purée de sésame (tahini)", "nuts", [595, 17, 21, 53.8, 9.3, 0.5, 7.5, 0.1], 1, 15, { portions: [P("1 c. à soupe", 15)], keywords: ["tahini", "tahin", "sésame"] }),
+  f("olives", "Olives noires", "fats", [145, 1, 3.8, 15.3, 3.3, 0, 2, 2.1], 3, 30, { keywords: ["olives"] }),
+  f("sesame", "Graines de sésame", "nuts", [573, 17.7, 11.7, 49.7, 11.8, 0.3, 7, 0.03], 1, 5, { keywords: ["sésame"] }),
+  f("frozen_berries", "Fruits rouges surgelés", "fruits", [45, 1, 7.5, 0.4, 4.5, 6.5, 0, 0], 1, 100, { keywords: ["fruits rouges", "myrtilles", "framboises", "mûres"] }),
 ];
 
 export const FOOD_BY_ID = new Map(FOODS.map((x) => [x.id, x]));
