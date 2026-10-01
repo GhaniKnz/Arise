@@ -18,6 +18,8 @@ export const REMOTE_TABLE: Record<SyncedTable, string> = {
   dailyLogs: "daily_logs",
   reports: "weekly_reports",
   coachMessages: "coach_messages",
+  cycles: "goal_cycles",
+  comparisons: "photo_comparisons",
 };
 
 type Row = Record<string, unknown>;
@@ -44,4 +46,6 @@ export const COLUMNS: Record<SyncedTable, (r: Row) => Row> = {
   dailyLogs: (r) => pick(r, { date: "date", steps: "steps", water_ml: "waterMl", sleep_min: "sleepMin", energy: "energy" }),
   reports: (r) => pick(r, { week_start: "weekStart" }),
   coachMessages: (r) => pick(r, { role: "role" }),
+  cycles: (r) => pick(r, { goal: "goal", start_date: "startDate", end_date: "endDate" }),
+  comparisons: (r) => pick(r, { before_id: "beforeId", after_id: "afterId" }),
 };

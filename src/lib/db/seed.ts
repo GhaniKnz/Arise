@@ -4,6 +4,7 @@ import type {
   ActivityLevel,
   BodyMetric,
   CardioSession,
+  Cycle,
   DailyLog,
   Experience,
   Favorite,
@@ -11,6 +12,7 @@ import type {
   GoalType,
   Ingredient,
   MealSlot,
+  PhotoComparison,
   Profile,
   ProgressPhoto,
   Recipe,
@@ -400,7 +402,15 @@ export async function seedDemo(days = 45) {
     photos.push(stamp<ProgressPhoto>({ date, pose: "front", blob, thumb: blob, weightKg: m?.weightKg, waistCm: metrics.filter((x) => x.date <= date && x.waistCm).at(-1)?.waistCm }));
   }
 
-  await db.transaction("rw", [db.foodEntries, db.dailyLogs, db.bodyMetrics, db.sessions, db.sets, db.cardio, db.meals, db.recipes, db.photos, db.favorites, db.kv], async () => {
+  // Two cycles: a short maintenance phase, then the running cut.
+  const cutStart = addDays(start, 10);
+  const cycles = [
+    stamp<Cycle>({ goal: "maintain", name: "Mise en route", startDate: start, endDate: addDays(cutStart, -1), startWeightKg: 80, targetWeightKg: 80, weeklyRatePct: 0, kcalTarget: profile.targets.kcal + 450, note: "Reprise de la salle et des pesées, sans déficit." }),
+    stamp<Cycle>({ goal: "cut", startDate: cutStart, startWeightKg: metrics.filter((m) => m.date <= cutStart && m.weightKg).at(-1)?.weightKg ?? 80, targetWeightKg: profile.targetWeightKg, weeklyRatePct: profile.weeklyRatePct, kcalTarget: profile.targets.kcal }),
+  ];
+  const comparisons = photos.length >= 2 ? [stamp<PhotoComparison>({ beforeId: photos[0].id, afterId: photos.at(-1)!.id, title: "Jour 1 → aujourd'hui" })] : [];
+
+  await db.transaction("rw", [db.foodEntries, db.dailyLogs, db.bodyMetrics, db.sessions, db.sets, db.cardio, db.meals, db.recipes, db.photos, db.favorites, db.kv, db.cycles, db.comparisons], async () => {
     await db.foodEntries.bulkAdd(entries);
     await db.dailyLogs.bulkAdd(logs);
     await db.bodyMetrics.bulkAdd(metrics);
@@ -410,6 +420,8 @@ export async function seedDemo(days = 45) {
     await db.meals.bulkAdd(meals);
     await db.recipes.bulkAdd(recipes);
     if (photos.length) await db.photos.bulkAdd(photos);
+    await db.cycles.bulkAdd(cycles);
+    if (comparisons.length) await db.comparisons.bulkAdd(comparisons);
     await db.favorites.bulkAdd(["b:chicken_breast_cooked", "b:skyr", "b:egg", "b:rice_white_cooked", "b:whey"].map((foodId) => stamp<Favorite>({ foodId })));
     await db.kv.put({ key: "demo", value: true });
   });

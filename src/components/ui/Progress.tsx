@@ -1,6 +1,6 @@
 "use client";
 
-import { motion, useReducedMotion } from "motion/react";
+import { motion, useReducedMotionConfig } from "motion/react";
 import { useId, type ReactNode } from "react";
 import { cn } from "@/lib/utils/cn";
 
@@ -17,7 +17,7 @@ interface BarProps {
 }
 
 export function ProgressBar({ value, max, color = "var(--color-arise)", gradient, className, height = 8, label, overflow }: BarProps) {
-  const reduce = useReducedMotion();
+  const reduce = useReducedMotionConfig();
   const ratio = max > 0 ? value / max : 0;
   const pct = Math.max(0, Math.min(1, ratio)) * 100;
   const over = overflow && ratio > 1;
@@ -59,7 +59,7 @@ interface RingProps {
 
 /** Circular gauge that fills progressively. Overflow wraps in amber. */
 export function Ring({ value, max, size = 180, stroke = 12, children, colors = ["#4da3ff", "#8b5cf6"], track = "rgb(255 255 255 / 0.06)", label, className }: RingProps) {
-  const reduce = useReducedMotion();
+  const reduce = useReducedMotionConfig();
   const id = useId().replace(/:/g, "");
   const r = (size - stroke) / 2;
   const c = 2 * Math.PI * r;

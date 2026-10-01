@@ -279,9 +279,14 @@ export interface LedgerInput {
   today: DayKey;
   /** Weight-goal bosses defeated (see bosses.ts). */
   bossEvents?: { date: DayKey; name: string; xp: number }[];
+  /**
+   * Goal and calorie target of a past cycle, so switching from a cut to a bulk
+   * doesn't re-judge the days already lived under the previous goal.
+   */
+  dayContext?: (date: DayKey) => { goal: GoalType; kcal?: number } | undefined;
 }
 
-export function buildLedger({ days, targets, goal, quests, prsByDate, today, bossEvents = [] }: LedgerInput): Ledger {
+export function buildLedger({ days, targets, goal, quests, prsByDate, today, bossEvents = [], dayContext }: LedgerInput): Ledger {
   const sorted = [...days].sort((a, b) => a.date.localeCompare(b.date));
   const map = new Map<DayKey, DayLedger>();
   const events: XpEvent[] = [];
@@ -296,8 +301,11 @@ export function buildLedger({ days, targets, goal, quests, prsByDate, today, bos
   };
 
   for (const day of sorted) {
-    const qs = questsForDay(day, targets, goal, quests);
-    const score = dailyScore(day, targets, goal, quests);
+    const ctx = dayContext?.(day.date);
+    const dayGoal = ctx?.goal ?? goal;
+    const dayTargets = ctx?.kcal ? { ...targets, kcal: ctx.kcal } : targets;
+    const qs = questsForDay(day, dayTargets, dayGoal, quests);
+    const score = dailyScore(day, dayTargets, dayGoal, quests);
     const before = events.length;
 
     for (const q of qs) if (q.done) push({ date: day.date, amount: q.xp, stat: q.stat, label: `Quête : ${QUEST_DEFS[q.id].label}` });

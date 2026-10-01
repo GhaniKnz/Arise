@@ -12,6 +12,7 @@ import { Button, LinkButton } from "@/components/ui/Button";
 import { Panel, PanelHeader } from "@/components/ui/Panel";
 import { useActiveSession, useExerciseLibrary, useRoutines } from "@/lib/db/hooks";
 import { startSession } from "@/lib/db/repos/workout";
+import { cue } from "@/lib/system/feedback";
 import { routineColor, routineIcon } from "@/lib/data/routines";
 import { sessionMinutes } from "@/lib/domain/daily";
 import { weekdayIndex } from "@/lib/utils/date";
@@ -35,6 +36,7 @@ export function WorkoutTodayCard() {
     setStarting(true);
     try {
       await startSession({ routine });
+      cue("start");
       router.push("/session");
     } finally {
       setStarting(false);

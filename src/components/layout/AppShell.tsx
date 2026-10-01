@@ -61,7 +61,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <div className="relative isolate min-h-dvh" data-effects={profile.effects}>
-      <Background particles={profile.effects !== "reduced"} />
+      <Background particles={profile.effects !== "reduced" && profile.animations !== false} />
       <Sidebar />
       <div className="lg:pl-64">
         <TopBar />

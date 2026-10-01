@@ -1,6 +1,6 @@
 "use client";
 
-import { motion, useDragControls, useReducedMotion } from "motion/react";
+import { motion, useDragControls, useReducedMotionConfig } from "motion/react";
 import { Check, Trash2, Trophy } from "lucide-react";
 import { useState } from "react";
 import type { WorkoutSet } from "@/lib/db/types";
@@ -33,7 +33,7 @@ const TONE_COLOR: Record<Tone, string> = { done: "#34d399", gain: "#34d399", pr:
 
 /** One-shot celebration around the validate button. */
 function Burst({ tone, label }: { tone: Tone; label?: string }) {
-  const reduce = useReducedMotion();
+  const reduce = useReducedMotionConfig();
   const color = TONE_COLOR[tone];
   const count = reduce || tone === "done" ? 0 : tone === "gain" ? 10 : 18;
   return (

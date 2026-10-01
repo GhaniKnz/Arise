@@ -7,7 +7,7 @@ import type { ProgressPhoto } from "@/lib/db/types";
 import { formatShort } from "@/lib/utils/date";
 import { fmtDec } from "@/lib/utils/format";
 
-function caption(p: ProgressPhoto) {
+export function caption(p: ProgressPhoto) {
   return [formatShort(p.date), p.weightKg ? `${fmtDec(p.weightKg)} kg` : null, p.waistCm ? `taille ${fmtDec(p.waistCm)}` : null].filter(Boolean).join(" · ");
 }
 
@@ -62,14 +62,40 @@ export function PhotoCompare({ before, after }: { before: ProgressPhoto; after: 
   );
 }
 
-export function PhotoThumb({ photo, selected, onClick, badge }: { photo: ProgressPhoto; selected?: boolean; onClick?: () => void; badge?: string }) {
-  const url = useBlobUrl(photo.thumb);
+/** The two photos next to each other, each with its date and measures. */
+export function PhotoSideBySide({ before, after }: { before: ProgressPhoto; after: ProgressPhoto }) {
+  return (
+    <div className="grid grid-cols-2 gap-2">
+      {[
+        { p: before, label: "AVANT" },
+        { p: after, label: "APRÈS" },
+      ].map(({ p, label }) => (
+        <figure key={label} className="space-y-1">
+          <div className="relative aspect-[3/4] overflow-hidden rounded-2xl border border-line bg-black">
+            <PhotoImage photo={p} full className="absolute inset-0 size-full object-cover" alt={`${label === "AVANT" ? "Avant" : "Après"} : ${caption(p)}`} />
+            <span className="absolute top-2 left-2 rounded-lg bg-void/75 px-2 py-1 text-xs font-semibold text-ink">{label}</span>
+          </div>
+          <figcaption className="text-center text-[11px] text-ink-3">{caption(p)}</figcaption>
+        </figure>
+      ))}
+    </div>
+  );
+}
+
+/** Photo from its local Blob (thumbnail by default, full size with `full`). */
+export function PhotoImage({ photo, full, className, alt }: { photo: ProgressPhoto; full?: boolean; className?: string; alt?: string }) {
+  const url = useBlobUrl(full ? photo.blob : photo.thumb);
+  // eslint-disable-next-line @next/next/no-img-element
+  return url ? <img src={url} alt={alt ?? `Photo du ${formatShort(photo.date)}`} className={className} loading="lazy" draggable={false} /> : <span className={className} aria-hidden />;
+}
+
+export function PhotoThumb({ photo, selected, onClick, badge, tag }: { photo: ProgressPhoto; selected?: boolean; onClick?: () => void; badge?: string; tag?: string }) {
   return (
     <button type="button" onClick={onClick} className={`relative aspect-[3/4] w-full overflow-hidden rounded-xl border-2 bg-deep transition ${selected ? "border-arise shadow-glow" : "border-transparent"}`} aria-pressed={selected}>
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      {url && <img src={url} alt={`Photo du ${formatShort(photo.date)}`} className="size-full object-cover" loading="lazy" />}
+      <PhotoImage photo={photo} className="size-full object-cover" />
       <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent px-1.5 pt-4 pb-1 text-left text-[10px] text-white">{formatShort(photo.date)}</span>
       {badge && <span className="absolute top-1 left-1 rounded bg-arise px-1 text-[9px] font-bold text-void">{badge}</span>}
+      {tag && <span className="absolute top-1 right-1 rounded bg-void/75 px-1 text-[9px] font-semibold text-ink-2">{tag}</span>}
     </button>
   );
 }

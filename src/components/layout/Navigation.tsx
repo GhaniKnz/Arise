@@ -7,6 +7,7 @@ import { usePathname } from "next/navigation";
 import { useGame } from "@/components/providers/GameProvider";
 import { AriseMark, AriseWordmark } from "@/components/icons/AriseLogo";
 import { RankBadge, XpBar } from "@/components/game/LevelBadge";
+import { MusicButton, SidebarMusic } from "@/components/music/Music";
 import { IconButton } from "@/components/ui/Button";
 import { Sweep } from "@/components/ui/Effects";
 import { activeHref, isActive, PRIMARY_NAV, SECONDARY_NAV, type NavItem } from "@/lib/nav";
@@ -93,6 +94,10 @@ export function Sidebar() {
         ))}
       </nav>
 
+      <div className="px-3 pb-2">
+        <SidebarMusic />
+      </div>
+
       <div className="border-t border-line px-5 py-4">
         <div className="flex items-center gap-2 text-sm text-ink-2">
           <Flame className={cn("size-4 text-warn", ledger.streak.current > 0 && "flame-flicker")} />
@@ -140,6 +145,7 @@ export function TopBar() {
             </Link>
           </>
         )}
+        {profile && <MusicButton />}
         <IconButton label="Plus de sections" onClick={() => openSheet("more")}>
           <LayoutGrid />
         </IconButton>

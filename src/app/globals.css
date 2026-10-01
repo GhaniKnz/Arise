@@ -421,6 +421,16 @@ input[type="number"] {
   }
 }
 
+/* "Animations" turned off in Settings: same treatment as the OS reduced-motion preference. */
+[data-motion="off"] *,
+[data-motion="off"] *::before,
+[data-motion="off"] *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+  scroll-behavior: auto !important;
+}
+
 /* Reduced visual effects preference (set from Settings). */
 [data-effects="reduced"] .panel-glow::before {
   animation: none;
@@ -624,6 +634,22 @@ input[type="number"] {
   100% {
     box-shadow: 0 0 0 0 rgb(245 185 74 / 0);
     background-color: rgb(245 185 74 / 0.08);
+  }
+}
+
+/* Music equalizer bars (playing). */
+.eq-bar {
+  height: 100%;
+  transform-origin: bottom;
+  animation: eq-bounce 0.9s ease-in-out infinite;
+}
+@keyframes eq-bounce {
+  0%,
+  100% {
+    transform: scaleY(0.3);
+  }
+  50% {
+    transform: scaleY(1);
   }
 }
 

@@ -13,6 +13,8 @@ export type GoalType = "cut" | "bulk" | "recomp" | "maintain";
 export type ActivityLevel = "sedentary" | "light" | "moderate" | "active" | "very_active";
 export type Experience = "beginner" | "intermediate" | "advanced";
 export type QuestId = "steps" | "protein" | "calories" | "water" | "workout" | "sleep";
+/** "system" = Hunter System sound design, "classic" = the original short beeps. */
+export type SoundPack = "system" | "classic";
 
 export interface Targets {
   kcal: number;
@@ -47,6 +49,10 @@ export interface Profile extends BaseRow {
   sound: boolean;
   vibration: boolean;
   effects: "full" | "reduced";
+  /** Page transitions, counters and motion; `false` makes the interface instant. Default on. */
+  animations?: boolean;
+  /** Default "system". */
+  soundPack?: SoundPack;
   startDate: DayKey;
   onboardedAt: string;
 }
@@ -360,6 +366,27 @@ export interface ProgressPhoto extends BaseRow {
   remotePath?: string;
 }
 
+/** A before/after pair kept in the comparison gallery. */
+export interface PhotoComparison extends BaseRow {
+  beforeId: string;
+  afterId: string;
+  title?: string;
+}
+
+/** A nutrition phase (cut, bulk, maintenance…) with its dates, kept as history. */
+export interface Cycle extends BaseRow {
+  goal: GoalType;
+  name?: string;
+  startDate: DayKey;
+  /** Last day of the cycle (inclusive); absent while the cycle is ongoing. */
+  endDate?: DayKey;
+  startWeightKg?: number;
+  targetWeightKg?: number;
+  weeklyRatePct?: number;
+  kcalTarget?: number;
+  note?: string;
+}
+
 export interface DailyLog extends BaseRow {
   date: DayKey;
   steps?: number;
@@ -381,6 +408,21 @@ export interface WeeklyReport extends BaseRow {
 export interface CoachMessage extends BaseRow {
   role: "user" | "assistant";
   content: string;
+}
+
+export type TrackCategory = "opening" | "ending" | "ost" | "insert" | "sfx" | "other";
+
+/** Audio file imported by the user (or a direct link), stored on this device only. */
+export interface MusicTrack extends BaseRow {
+  title: string;
+  artist?: string;
+  category: TrackCategory;
+  /** Entry of the built-in Solo Leveling catalog this file was attached to. */
+  catalogId?: string;
+  blob?: Blob;
+  url?: string;
+  durationSec?: number;
+  order: number;
 }
 
 export interface KV {

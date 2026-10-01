@@ -1,6 +1,6 @@
 "use client";
 
-import { motion, useReducedMotion } from "motion/react";
+import { motion, useReducedMotionConfig } from "motion/react";
 import { CalendarClock, Check, ChevronRight, Crown, Flag, Percent, Skull, Swords, Target, TrendingDown, TrendingUp, Zap } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
@@ -55,7 +55,7 @@ function BossNode({ boss, isNext, index }: { boss: BossState; isNext: boolean; i
 
 /** Weight goal as a dungeon: floors guarded by bosses, defeated as the 7-day average crosses them. */
 function BossPath({ bosses, pct, start }: { bosses: BossState[]; pct: number; start: number }) {
-  const reduce = useReducedMotion();
+  const reduce = useReducedMotionConfig();
   const nextIdx = bosses.findIndex((b) => !b.defeated);
   return (
     <div className="px-5 pt-9 pb-1">

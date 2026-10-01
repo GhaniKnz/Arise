@@ -53,7 +53,8 @@ export async function importData(file: File, mode: "replace" | "merge"): Promise
   const known = new Set<string>(SYNCED_TABLES);
   let rows = 0;
   await db.transaction("rw", db.tables, async () => {
-    if (mode === "replace") await Promise.all(db.tables.map((t) => t.clear()));
+    // Imported music files are device-local media, not part of backups: keep them.
+    if (mode === "replace") await Promise.all(db.tables.filter((t) => t.name !== "tracks").map((t) => t.clear()));
     for (const [name, list] of Object.entries(parsed.data.tables)) {
       if (!known.has(name)) continue;
       const items = name === "photos" ? list.map((p) => ({ ...p, blob: dataUrlToBlob(String(p.blob)), thumb: dataUrlToBlob(String(p.thumb)) })) : list;
@@ -100,7 +101,7 @@ export function download(blob: Blob, filename: string) {
 /** Deletes training/nutrition/body history but keeps profile, routines and custom foods. */
 export async function deleteHistory() {
   await db.transaction("rw", db.tables, async () => {
-    for (const t of ["foodEntries", "sessions", "sets", "cardio", "bodyMetrics", "dailyLogs", "reports", "coachMessages", "photos"]) await db.table(t).clear();
+    for (const t of ["foodEntries", "sessions", "sets", "cardio", "bodyMetrics", "dailyLogs", "reports", "coachMessages", "photos", "cycles", "comparisons"]) await db.table(t).clear();
     await db.kv.clear();
   });
 }

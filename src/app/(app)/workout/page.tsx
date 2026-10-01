@@ -22,6 +22,7 @@ import { MUSCLE_LABEL } from "@/lib/data/exercises";
 import { useActiveSession, useExerciseLibrary, useRoutines } from "@/lib/db/hooks";
 import { updateProfile } from "@/lib/db/repos/profile";
 import { deleteCardio, startSession } from "@/lib/db/repos/workout";
+import { cue } from "@/lib/system/feedback";
 import type { Routine } from "@/lib/db/types";
 import { sessionMinutes } from "@/lib/domain/daily";
 import { setsPerMuscle, TRACKED_MUSCLES, WEEKLY_SET_TARGET } from "@/lib/domain/volume";
@@ -55,6 +56,7 @@ export default function WorkoutPage() {
 
   const start = async (routine?: Routine) => {
     await startSession({ routine });
+    cue("start");
     router.push("/session");
   };
 

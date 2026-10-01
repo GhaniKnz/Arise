@@ -1,6 +1,6 @@
 import { db } from "../index";
-import { insert, patch, remove } from "../repo";
-import type { BodyMetric, DailyLog, Pose, ProgressPhoto } from "../types";
+import { insert, kvSet, patch, remove } from "../repo";
+import type { BodyMetric, DailyLog, PhotoComparison, Pose, ProgressPhoto } from "../types";
 import type { DayKey } from "@/lib/utils/date";
 
 type MetricFields = Omit<BodyMetric, "id" | "createdAt" | "updatedAt" | "date">;
@@ -65,11 +65,46 @@ export async function addPhoto(opts: { date: DayKey; pose: Pose; file: Blob; wei
   });
 }
 
-export const deletePhoto = (id: string) => remove("photos", [id]);
+export async function updatePhoto(id: string, changes: Partial<Pick<ProgressPhoto, "date" | "pose" | "note">>) {
+  await patch(db.photos, id, changes);
+}
+
+/** Deletes a photo and the saved comparisons that use it. */
+export async function deletePhoto(id: string) {
+  const pairs = (await db.comparisons.filter((c) => c.beforeId === id || c.afterId === id).primaryKeys()) as string[];
+  await remove("comparisons", pairs);
+  await remove("photos", [id]);
+}
 
 export async function deleteAllPhotos() {
+  const pairs = (await db.comparisons.toCollection().primaryKeys()) as string[];
+  await remove("comparisons", pairs);
   const ids = (await db.photos.toCollection().primaryKeys()) as string[];
   await remove("photos", ids);
 }
+
+/* ─────────────── Before / after ─────────────── */
+
+/** Photos currently loaded in the before/after viewer (device-local UI state). */
+export const COMPARE_KEY = "photos:compare";
+export interface CompareSelection {
+  before?: string;
+  after?: string;
+}
+
+export const setCompareSelection = (sel: CompareSelection) => kvSet(COMPARE_KEY, sel);
+
+/** Keeps a before/after pair in the comparison gallery (no duplicates). */
+export async function saveComparison(beforeId: string, afterId: string, title?: string): Promise<{ row: PhotoComparison; created: boolean }> {
+  const existing = await db.comparisons.filter((c) => c.beforeId === beforeId && c.afterId === afterId).first();
+  if (existing) return { row: existing, created: false };
+  return { row: await insert<PhotoComparison>(db.comparisons, { beforeId, afterId, title }), created: true };
+}
+
+export async function renameComparison(id: string, title: string) {
+  await patch(db.comparisons, id, { title: title.trim() || undefined });
+}
+
+export const deleteComparison = (id: string) => remove("comparisons", [id]);
 
 export { resizeImage };

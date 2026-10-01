@@ -100,6 +100,14 @@ export function usePhotos() {
   return useLiveQuery(() => db.photos.orderBy("date").reverse().toArray(), []);
 }
 
+export function useComparisons() {
+  return useLiveQuery(() => db.comparisons.orderBy("updatedAt").reverse().toArray(), []);
+}
+
+export function useCycles() {
+  return useLiveQuery(() => db.cycles.orderBy("startDate").toArray(), []);
+}
+
 export function useCustomFoods() {
   return useLiveQuery(() => db.foods.toArray(), []);
 }

@@ -40,6 +40,11 @@ type Row = Record<string, unknown> & { id: string; updatedAt: string };
 const kvGet = async <T>(key: string) => (await db.kv.get(key))?.value as T | undefined;
 const kvSet = (key: string, value: unknown) => db.kv.put({ key, value });
 
+/** Tables added after the first migration may not exist yet on an older Supabase project. */
+const OPTIONAL_TABLES = new Set<SyncedTable>(["cycles", "comparisons"]);
+const isMissingTable = (table: SyncedTable, error: { code?: string; message?: string }) =>
+  OPTIONAL_TABLES.has(table) && (error.code === "42P01" || error.code === "PGRST205" || /does not exist|could not find the table/i.test(error.message ?? ""));
+
 function stripBlobs(table: SyncedTable, row: Row): Row {
   if (table !== "photos") return row;
   const { blob: _b, thumb: _t, ...rest } = row as Row & { blob?: Blob; thumb?: Blob };
@@ -83,6 +88,7 @@ async function push(uid: string) {
         deleted_at: null,
       }));
       const { error } = await sb.from(REMOTE_TABLE[table]).upsert(payload, { onConflict: "user_id,id" });
+      if (error && isMissingTable(table, error)) break;
       if (error) throw new Error(`${REMOTE_TABLE[table]} : ${error.message}`);
     }
   }
@@ -94,6 +100,10 @@ async function push(uid: string) {
     const { error } = await sb
       .from(REMOTE_TABLE[table])
       .upsert({ user_id: uid, id: t.id, data: { id: t.id, updatedAt: t.deletedAt }, updated_at: t.deletedAt, deleted_at: t.deletedAt }, { onConflict: "user_id,id" });
+    if (error && isMissingTable(table, error)) {
+      await db.tombstones.delete(t.id);
+      continue;
+    }
     if (error) throw new Error(`${REMOTE_TABLE[table]} : ${error.message}`);
     if (table === "photos") await sb.storage.from(PHOTO_BUCKET).remove([`${uid}/${t.id}.jpg`, `${uid}/${t.id}_thumb.jpg`]);
     await db.tombstones.delete(t.id);
@@ -114,6 +124,7 @@ async function pull() {
     let since = (await kvGet<string>(`sync:lastPull:${table}`)) ?? "1970-01-01T00:00:00Z";
     for (;;) {
       const { data, error } = await sb.from(REMOTE_TABLE[table]).select("id,data,deleted_at,synced_at").gt("synced_at", since).order("synced_at", { ascending: true }).limit(500);
+      if (error && isMissingTable(table, error)) break;
       if (error) throw new Error(`${REMOTE_TABLE[table]} : ${error.message}`);
       const rows = (data ?? []) as RemoteRow[];
       if (!rows.length) break;
@@ -219,6 +230,7 @@ export async function deleteCloudData() {
   if (!uid) return;
   for (const table of SYNCED_TABLES) {
     const { error } = await sb.from(REMOTE_TABLE[table]).delete().eq("user_id", uid);
+    if (error && isMissingTable(table, error)) continue;
     if (error) throw new Error(error.message);
   }
   const files = await sb.storage.from(PHOTO_BUCKET).list(uid, { limit: 1000 });

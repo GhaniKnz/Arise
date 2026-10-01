@@ -11,6 +11,7 @@ import { derivePRs, type PREvent } from "@/lib/domain/strength";
 import { adaptiveTdee, weightTrend, type AdaptiveTdee, type Point, type WeightTrend } from "@/lib/domain/trend";
 import { EXERCISE_BY_ID } from "@/lib/data/exercises";
 import { bossPath, bossStates, type BossState } from "@/lib/domain/bosses";
+import { cycleAt, cycleSpans, type CycleSpan } from "@/lib/domain/cycles";
 import { addDays, type DayKey } from "@/lib/utils/date";
 
 export interface GameState {
@@ -28,6 +29,8 @@ export interface GameState {
   currentWeight: number | null;
   /** Weight-goal bosses with their defeated state. */
   bosses: BossState[];
+  /** Cut / bulk / maintenance cycles, oldest first (the last one runs). */
+  cycles: CycleSpan[];
 }
 
 const EMPTY_RAW: RawData = { entries: [], logs: [], sessions: [], sets: [], cardio: [], metrics: [] };
@@ -50,7 +53,7 @@ function firstDate(raw: RawData, fallback: DayKey): DayKey {
 export function GameProvider({ children }: { children: ReactNode }) {
   const today = useToday();
   const data = useLiveQuery(async () => {
-    const [profile, entries, logs, sessions, sets, cardio, metrics, customExercises] = await Promise.all([
+    const [profile, entries, logs, sessions, sets, cardio, metrics, customExercises, cycles] = await Promise.all([
       db.profile.get("me"),
       db.foodEntries.toArray(),
       db.dailyLogs.toArray(),
@@ -59,9 +62,10 @@ export function GameProvider({ children }: { children: ReactNode }) {
       db.cardio.toArray(),
       db.bodyMetrics.toArray(),
       db.customExercises.toArray(),
+      db.cycles.toArray(),
     ]);
     const weightedOverride = new Map(customExercises.map((e) => [e.id, e.weighted]));
-    return { profile: profile ?? null, raw: { entries, logs, sessions, sets, cardio, metrics } as RawData, weightedOverride };
+    return { profile: profile ?? null, raw: { entries, logs, sessions, sets, cardio, metrics } as RawData, weightedOverride, cycles };
   }, []);
 
   const state = useMemo<GameState>(() => {
@@ -93,6 +97,15 @@ export function GameProvider({ children }: { children: ReactNode }) {
 
     const bosses = profile ? bossStates(bossPath(profile.startWeightKg, profile.targetWeightKg), profile.startWeightKg, trend.series) : [];
 
+    const cycles = profile
+      ? cycleSpans(data?.cycles ?? [], { goal: profile.goal, startDate: profile.startDate, startWeightKg: profile.startWeightKg, targetWeightKg: profile.targetWeightKg, kcal: profile.targets.kcal }, today)
+      : [];
+    // Days of finished cycles keep the goal (and calorie target) they were lived with.
+    const dayContext = (date: DayKey) => {
+      const c = cycleAt(cycles, date);
+      return c && !c.ongoing ? { goal: c.goal, kcal: c.kcalTarget } : undefined;
+    };
+
     const ledger = buildLedger({
       days,
       targets: profile?.targets ?? { kcal: 2000, protein: 150, carbs: 200, fat: 65, fiber: 30, waterMl: 2500, steps: 8000, sleepMin: 450 },
@@ -101,6 +114,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       prsByDate,
       today,
       bossEvents: bosses.filter((b) => b.defeatedOn).map((b) => ({ date: b.defeatedOn!, name: b.name, xp: b.xp })),
+      dayContext,
     });
     const intake: Point[] = days.filter((d) => d.entries > 0 && d.date < today).map((d) => ({ date: d.date, value: d.kcal }));
     const adaptive = adaptiveTdee(weights, intake, addDays(today, -1));
@@ -119,6 +133,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       prs,
       currentWeight: weights.at(-1)?.value ?? profile?.startWeightKg ?? null,
       bosses,
+      cycles,
     };
   }, [data, today]);
 

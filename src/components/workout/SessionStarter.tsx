@@ -12,6 +12,7 @@ import { Panel } from "@/components/ui/Panel";
 import { routineColor, routineIcon } from "@/lib/data/routines";
 import { useExerciseLibrary, useRoutines } from "@/lib/db/hooks";
 import { startSession } from "@/lib/db/repos/workout";
+import { cue } from "@/lib/system/feedback";
 import type { Routine } from "@/lib/db/types";
 import { weekdayIndex } from "@/lib/utils/date";
 import { cn } from "@/lib/utils/cn";
@@ -30,6 +31,7 @@ export function SessionStarter({ onStarted, onPastCreated }: { onStarted: () => 
     setBusy(true);
     try {
       await startSession({ routine });
+      cue("start");
       onStarted();
     } finally {
       setBusy(false);

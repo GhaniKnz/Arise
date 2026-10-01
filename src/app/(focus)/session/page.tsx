@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { useGame } from "@/components/providers/GameProvider";
 import { ExerciseIcon, RoutineIcon } from "@/components/icons/ExerciseIcon";
+import { MiniPlayer, MusicButton } from "@/components/music/Music";
 import { ExerciseBlock } from "@/components/workout/ExerciseBlock";
 import { ExercisePickerSheet } from "@/components/workout/ExercisePickerSheet";
 import { FinishSheet } from "@/components/workout/FinishSheet";
@@ -102,7 +103,7 @@ export default function SessionPage() {
       toast({ tone: "success", title: `Programme « ${routine.name} » mis à jour`, message: "Il reprend les exercices de cette séance." });
     }
     timer.skip();
-    cue("levelup");
+    cue("finish");
     toast({ tone: "quest", title: "Séance terminée", message: session.name, xp: 100 });
     router.replace(`/workout/history/${session.id}?done=1`);
   };
@@ -136,6 +137,7 @@ export default function SessionPage() {
           </span>
           <span className="block font-display text-lg leading-none font-bold text-good tabular">{fmtClock(elapsed)}</span>
         </button>
+        <MusicButton />
         <IconButton label="Vue d'ensemble des exercices" onClick={() => setOverview(true)}>
           <ListOrdered />
         </IconButton>
@@ -143,6 +145,8 @@ export default function SessionPage() {
           Terminer
         </Button>
       </header>
+
+      <MiniPlayer className="mb-3" />
 
       {ids.length > 0 && (
         <nav className="-mx-4 mb-4 flex gap-1.5 overflow-x-auto px-4 pb-1 no-scrollbar" aria-label="Exercices de la séance">
@@ -186,8 +190,9 @@ export default function SessionPage() {
                 sets={exSets}
                 history={history?.get(exercise.id)}
                 repRange={repRange}
-                onSetCompleted={({ prs, gain, beat, values }) => {
-                  cue("set");
+                onSetCompleted={({ set, prs, gain, beat, values }) => {
+                  const clearedExercise = !set.warmup && !exSets.some((s) => !s.warmup && !s.done && s.id !== set.id);
+                  cue(clearedExercise ? "clear" : "set");
                   const remainingSets = sets.filter((s) => !s.done && !s.warmup).length - 1;
                   if (remainingSets > 0) timer.start(restSec);
                   if (prs.length) {

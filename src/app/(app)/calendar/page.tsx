@@ -4,11 +4,13 @@ import { CalendarCheck, ChevronLeft, ChevronRight, Dumbbell, Flame, Footprints, 
 import { useMemo, useState } from "react";
 import { useGame } from "@/components/providers/GameProvider";
 import { DaySheet } from "@/components/calendar/DaySheet";
+import { CyclesPanel } from "@/components/cycles/CyclesPanel";
 import { Heatmap } from "@/components/calendar/Heatmap";
 import { IconButton } from "@/components/ui/Button";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Panel, PanelHeader, StatTile } from "@/components/ui/Panel";
-import { addDays, addMonths, daysInMonth, formatMonth, monthStart, rangeKeys, weekdayIndex, WEEKDAYS_SHORT, type DayKey } from "@/lib/utils/date";
+import { CYCLE_META, cycleAt } from "@/lib/domain/cycles";
+import { addDays, addMonths, daysInMonth, formatMonth, formatShort, monthStart, rangeKeys, weekdayIndex, WEEKDAYS_SHORT, type DayKey } from "@/lib/utils/date";
 import { cn } from "@/lib/utils/cn";
 
 const MARKERS = [
@@ -20,7 +22,7 @@ const MARKERS = [
 ] as const;
 
 export default function CalendarPage() {
-  const { ledger, today, profile } = useGame();
+  const { ledger, today, profile, cycles } = useGame();
   const [month, setMonth] = useState(monthStart(today));
   const [selected, setSelected] = useState<DayKey | null>(null);
 
@@ -43,11 +45,15 @@ export default function CalendarPage() {
     };
   }, [days, ledger, today]);
 
+  // Cycles overlapping the displayed month, for the strip above the grid.
+  const monthEnd = days.at(-1)!;
+  const monthCycles = cycles.filter((c) => c.start <= monthEnd && c.end >= month);
+
   if (!profile) return null;
 
   return (
     <>
-      <PageHeader kicker="Système" title="Calendrier" subtitle="Tes jours de salle, ton adhérence et tes séries de jours" />
+      <PageHeader kicker="Système" title="Calendrier" subtitle="Tes jours de salle, ton adhérence, tes séries et tes cycles" />
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_20rem]">
         <Panel>
@@ -60,6 +66,19 @@ export default function CalendarPage() {
               <ChevronRight />
             </IconButton>
           </div>
+          {monthCycles.length > 0 && (
+            <div className="mb-3 flex flex-wrap items-center gap-1.5 text-[11px] text-ink-3">
+              {monthCycles.map((c) => (
+                <span key={c.id} className="inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 font-semibold" style={{ borderColor: `${CYCLE_META[c.goal].color}66`, color: CYCLE_META[c.goal].color }}>
+                  <span className="size-1.5 rounded-full" style={{ background: CYCLE_META[c.goal].color }} aria-hidden />
+                  {c.name}
+                  <span className="font-normal text-ink-3">
+                    {c.start >= month ? `dès le ${formatShort(c.start)}` : c.end <= monthEnd && !c.ongoing ? `jusqu'au ${formatShort(c.end)}` : ""}
+                  </span>
+                </span>
+              ))}
+            </div>
+          )}
           <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-semibold tracking-wider text-ink-3">
             {WEEKDAYS_SHORT.map((d) => (
               <span key={d}>{d}</span>
@@ -72,6 +91,7 @@ export default function CalendarPage() {
             {days.map((d) => {
               const l = ledger.days.get(d);
               const future = d > today;
+              const cycle = future ? undefined : cycleAt(cycles, d);
               const marks = {
                 session: (l?.day.sessionsDone ?? 0) > 0,
                 cardio: (l?.day.cardioMin ?? 0) > 0,
@@ -91,8 +111,9 @@ export default function CalendarPage() {
                     future ? "opacity-30" : "hover:border-arise/50",
                   )}
                   style={{ background: !future && l?.score.tracked ? `rgb(77 163 255 / ${(0.05 + (l.score.total / 100) * 0.25).toFixed(2)})` : undefined }}
-                  aria-label={`${d}${l?.score.tracked ? `, score ${l.score.total}` : ""}${marks.session ? ", séance" : ""}`}
+                  aria-label={`${d}${l?.score.tracked ? `, score ${l.score.total}` : ""}${marks.session ? ", séance" : ""}${cycle ? `, ${cycle.name}` : ""}`}
                 >
+                  {cycle && <span className="absolute inset-x-1.5 bottom-0.5 h-[3px] rounded-full opacity-80" style={{ background: CYCLE_META[cycle.goal].color }} aria-hidden />}
                   <span className={cn("self-start text-[11px] font-semibold", d === today ? "text-arise" : "text-ink-2")}>{Number(d.slice(8))}</span>
                   <span className="flex flex-wrap justify-center gap-0.5">
                     {MARKERS.filter((m) => marks[m.key]).map((m) => (
@@ -134,6 +155,15 @@ export default function CalendarPage() {
             <p className="mt-3 text-center text-[11px] text-ink-3">+150 XP tous les 7 jours validés d&apos;affilée</p>
           </Panel>
         </div>
+      </div>
+
+      <div className="mt-4">
+        <CyclesPanel
+          onShowMonth={(d) => {
+            setMonth(monthStart(d));
+            window.scrollTo({ top: 0, behavior: "smooth" });
+          }}
+        />
       </div>
 
       <Panel className="mt-4">

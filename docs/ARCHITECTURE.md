@@ -90,6 +90,9 @@ Toutes les lignes : `id` (UUID), `createdAt`, `updatedAt`. Les jours sont des cl
 | `bodyMetrics` | 1 ligne/jour : poids, % MG, masse musculaire, eau, viscérale, tours (taille, poitrine, bras, cuisses, hanches, cou) |
 | `photos` | photos de progression (Blob local), pose, poids/taille/MG associés |
 | `dailyLogs` | 1 ligne/jour : pas, eau, sommeil, qualité, énergie, calories actives, note |
+| `cycles` | cycles nutritionnels (sèche, prise de masse, maintien, recompo) : dates, poids de départ/visé, rythme, calories visées, note |
+| `comparisons` | paires de photos avant/après gardées dans la galerie |
+| `tracks` | **local uniquement** : fichiers audio importés (ou liens) pour la musique d'entraînement, jamais synchronisés ni exportés |
 | `reports` | rapports hebdo générés (règles + IA optionnelle) |
 | `coachMessages` | historique ARISE AI |
 | `kv` | état UI persistant (dernier niveau vu, synchro…) |
@@ -128,5 +131,9 @@ Chaque vue gère : **chargement** (skeletons), **vide** (message + action princi
 * **Prix réels** : `/api/prices?category=…` interroge Open Prices (France, 6 mois), agrège par enseigne (médiane, nb de relevés), cache 12 h.
 * **IA** : `lib/ai/server.ts#pickEngine` choisit Claude ou Gemini selon les clés disponibles et la préférence ; `lib/ai/gemini.ts` appelle l'API REST (`generateContent` avec `responseJsonSchema`, `streamGenerateContent` en SSE pour le coach) et bascule de modèle sur quota (429) ou surcharge (503).
 * **Mémoire des estimations** : la liste des produits (`foods` source `custom`/`ai`) et des repas enregistrés est envoyée avec la photo ; l'IA renvoie `known_id` / `known_meal_id`. Les nouveaux produits sont mémorisés (source `ai`, dédoublonnés par nom normalisé), les plats composés deviennent des « Repas ».
+* **Cycles** (`domain/cycles.ts`) : la frise est déduite des lignes `cycles` (fin implicite = veille du cycle suivant ; sans ligne, l'objectif du profil depuis sa date de départ forme le cycle en cours). `buildLedger` reçoit `dayContext` : les jours d'un cycle terminé gardent son objectif et ses calories visées, donc changer de cycle ne réécrit pas l'XP passée. Statistiques par cycle : poids (moyenne 7 j) au début et à la fin, rythme, calories, séances, records, adhérence, tour de taille, masse grasse, photos.
+* **Sons** (`system/sfx.ts`) : pack « Système » synthétisé en Web Audio (oscillateurs, bruit filtré, réverbération générée), sans fichier audio.
+* **Musique** (`music/player.ts`) : un seul élément `<audio>` hors de React (survit à la navigation, joue écran verrouillé) + Media Session ; Safari : `navigator.audioSession.type = "playback"` pendant la lecture.
+* **Animations** : réglage `animations` → `MotionGlobalConfig.skipAnimations` + `MotionConfig reducedMotion="always"` + `[data-motion="off"]` en CSS.
 * **Exercices en double** : un même exercice peut apparaître plusieurs fois dans une séance ; les séries portent un `slot` (occurrence) et chaque bloc compare avec la même occurrence de la séance précédente.
 

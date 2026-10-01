@@ -1,6 +1,6 @@
 "use client";
 
-import { animate, useMotionValue, useReducedMotion } from "motion/react";
+import { animate, useMotionValue, useReducedMotionConfig } from "motion/react";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
 interface Props {
@@ -16,7 +16,8 @@ const defaultFormat = (n: number) => Math.round(n).toLocaleString("fr-FR");
 export function AnimatedNumber({ value, format = defaultFormat, duration = 0.9, className }: Props) {
   const ref = useRef<HTMLSpanElement>(null);
   const mv = useMotionValue(0);
-  const reduce = useReducedMotion();
+  // Follows both the OS preference and the in-app "Animations" setting.
+  const reduce = useReducedMotionConfig();
   const formatRef = useRef(format);
   // The initial text is fixed at mount; later frames are written straight to the DOM.
   const [initial] = useState(() => format(reduce ? value : 0));

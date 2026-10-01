@@ -19,8 +19,9 @@ export function GameWatcher() {
   const [tick, setTick] = useState(0);
 
   useEffect(() => {
-    if (profile) setFeedbackPrefs({ sound: profile.sound, vibration: profile.vibration });
+    if (profile) setFeedbackPrefs({ sound: profile.sound, vibration: profile.vibration, pack: profile.soundPack });
     document.documentElement.dataset.effects = profile?.effects ?? "full";
+    document.documentElement.dataset.motion = profile?.animations === false ? "off" : "on";
   }, [profile]);
 
   useEffect(() => {

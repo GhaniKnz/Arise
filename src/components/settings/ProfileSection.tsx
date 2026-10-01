@@ -1,22 +1,28 @@
 "use client";
 
-import { UserRound } from "lucide-react";
+import { Repeat2, UserRound } from "lucide-react";
 import { useState } from "react";
+import { CycleSheet } from "@/components/cycles/CycleSheet";
+import { CycleBadge } from "@/components/cycles/CyclesPanel";
 import { useGame } from "@/components/providers/GameProvider";
 import { Button } from "@/components/ui/Button";
 import { Field, NumberInput, Segmented, Select, TextInput } from "@/components/ui/Fields";
+import { syncRunningCycle } from "@/lib/db/repos/cycles";
 import { Panel, PanelHeader } from "@/components/ui/Panel";
 import { refreshAutoTargets, updateProfile } from "@/lib/db/repos/profile";
-import type { ActivityLevel, Experience, GoalType, Profile, Sex } from "@/lib/db/types";
+import type { ActivityLevel, Experience, Profile, Sex } from "@/lib/db/types";
 import { ACTIVITY_LABELS, GOAL_LABELS } from "@/lib/domain/energy";
+import { formatShort } from "@/lib/utils/date";
 import { toast } from "@/lib/system/store";
 import { fmtDec } from "@/lib/utils/format";
 
 type Draft = Pick<Profile, "name" | "sex" | "heightCm" | "startWeightKg" | "targetWeightKg" | "goal" | "activity" | "experience" | "weeklyRatePct"> & { age: number };
 
 export function ProfileSection() {
-  const { profile, currentWeight } = useGame();
+  const { profile, currentWeight, cycles } = useGame();
   const [d, setD] = useState<Draft | null>(null);
+  const [switching, setSwitching] = useState(false);
+  const running = cycles.at(-1);
 
   if (profile && !d)
     setD({
@@ -42,6 +48,7 @@ export function ProfileSection() {
     }
     const { age, ...rest } = d;
     await updateProfile({ ...rest, name: d.name.trim(), birthYear: new Date().getFullYear() - age });
+    await syncRunningCycle({ targetWeightKg: d.targetWeightKg, weeklyRatePct: d.weeklyRatePct });
     await refreshAutoTargets(currentWeight ?? d.startWeightKg);
     toast({ tone: "success", title: "Profil mis à jour", message: profile.targetsMode === "auto" ? "Objectifs recalculés" : undefined });
   };
@@ -68,14 +75,19 @@ export function ProfileSection() {
         <Field label="Poids objectif">
           <NumberInput value={d.targetWeightKg} onChange={(v) => set("targetWeightKg", v ?? 0)} step={0.5} min={30} max={300} unit="kg" stepper={false} />
         </Field>
-        <Field label="Objectif" className="sm:col-span-2">
-          <Select value={d.goal} onChange={(e) => set("goal", e.target.value as GoalType)}>
-            {(Object.keys(GOAL_LABELS) as GoalType[]).map((g) => (
-              <option key={g} value={g}>
-                {GOAL_LABELS[g].label} — {GOAL_LABELS[g].hint}
-              </option>
-            ))}
-          </Select>
+        <Field label="Objectif (cycle en cours)" className="sm:col-span-2">
+          <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-line bg-white/[0.02] p-2.5">
+            <div className="min-w-0">
+              {running && <CycleBadge span={running} />}
+              <p className="mt-1 text-xs text-ink-3">
+                {GOAL_LABELS[profile.goal].hint}
+                {running ? ` · depuis le ${formatShort(running.start)}` : ""}
+              </p>
+            </div>
+            <Button size="sm" variant="secondary" onClick={() => setSwitching(true)}>
+              <Repeat2 /> Changer de cycle
+            </Button>
+          </div>
         </Field>
         {d.goal !== "maintain" && (
           <Field label={`Rythme visé : ${fmtDec(d.weeklyRatePct)} % du poids / semaine`} hint={d.goal === "cut" ? "Recommandé : 0,5–0,7 % (au-delà de 1 %, risque accru de perte musculaire)." : "Prise de masse : 0,1–0,25 %/semaine limite le gain de gras."} className="sm:col-span-2">
@@ -111,6 +123,7 @@ export function ProfileSection() {
       <Button className="mt-4" onClick={save}>
         Enregistrer le profil
       </Button>
+      <CycleSheet mode={switching ? { kind: "switch" } : null} onClose={() => setSwitching(false)} />
     </Panel>
   );
 }

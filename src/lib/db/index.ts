@@ -4,11 +4,14 @@ import type {
   CardioSession,
   CoachMessage,
   CustomExercise,
+  Cycle,
   DailyLog,
   Favorite,
   FoodEntry,
   FoodRow,
   KV,
+  MusicTrack,
+  PhotoComparison,
   Profile,
   ProgressPhoto,
   Recipe,
@@ -37,6 +40,10 @@ export class AriseDB extends Dexie {
   dailyLogs!: EntityTable<DailyLog, "id">;
   reports!: EntityTable<WeeklyReport, "id">;
   coachMessages!: EntityTable<CoachMessage, "id">;
+  cycles!: EntityTable<Cycle, "id">;
+  comparisons!: EntityTable<PhotoComparison, "id">;
+  /** Local only: audio files are never synced nor exported. */
+  tracks!: EntityTable<MusicTrack, "id">;
   kv!: EntityTable<KV, "key">;
   tombstones!: EntityTable<Tombstone, "id">;
 
@@ -62,6 +69,11 @@ export class AriseDB extends Dexie {
       kv: "key",
       tombstones: "id, table",
     });
+    this.version(2).stores({
+      cycles: "id, startDate, updatedAt",
+      comparisons: "id, updatedAt",
+      tracks: "id, order, catalogId, updatedAt",
+    });
   }
 }
 
@@ -83,6 +95,8 @@ export const SYNCED_TABLES = [
   "dailyLogs",
   "reports",
   "coachMessages",
+  "cycles",
+  "comparisons",
 ] as const;
 
 export type SyncedTable = (typeof SYNCED_TABLES)[number];

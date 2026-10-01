@@ -1,6 +1,6 @@
 "use client";
 
-import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { AnimatePresence, motion, useReducedMotionConfig } from "motion/react";
 import { Crown, Skull, Sparkles, Swords, Trophy, X, Zap } from "lucide-react";
 import { useEffect } from "react";
 import { createPortal } from "react-dom";
@@ -12,7 +12,7 @@ import { useMounted } from "@/lib/hooks/useMounted";
 import { fmtDec } from "@/lib/utils/format";
 
 function EnergyBurst({ color, count = 28 }: { color: string; count?: number }) {
-  const reduce = useReducedMotion();
+  const reduce = useReducedMotionConfig();
   if (reduce) return null;
   return (
     <div className="pointer-events-none absolute inset-0 flex items-center justify-center" aria-hidden>
