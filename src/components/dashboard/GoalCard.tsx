@@ -5,7 +5,7 @@ import { CalendarClock, Check, ChevronRight, Crown, Flag, Percent, Skull, Swords
 import Link from "next/link";
 import Image from "next/image";
 import { useGame } from "@/components/providers/GameProvider";
-import { GlyphIcon } from "@/components/icons/GlyphIcon";
+import { BossPortrait } from "@/components/game/BossPortrait";
 import { Sweep } from "@/components/ui/Effects";
 import { Panel, PanelHeader } from "@/components/ui/Panel";
 import { nextBoss, type BossState } from "@/lib/domain/bosses";
@@ -43,11 +43,12 @@ function BossNode({ boss, isNext, index }: { boss: BossState; isNext: boolean; i
     >
       {isNext && <span className="absolute inset-0 animate-ping rounded-xl bg-boss/40" aria-hidden />}
       <span
-        className={cn("relative flex items-center justify-center rounded-xl border-2 bg-void [&>svg]:size-[55%]", size, boss.defeated && "bg-arise/20")}
+        className={cn("relative flex items-center justify-center overflow-hidden rounded-xl border-2 bg-void", size, boss.defeated && "bg-arise/20")}
         style={{ borderColor: color, color, boxShadow: boss.defeated || isNext ? `0 0 14px ${color}` : undefined }}
         title={`${boss.name} · ${fmtDec(boss.atKg)} kg${boss.defeated ? " · vaincu" : ""}`}
       >
-        {boss.defeated ? <Check strokeWidth={3} /> : boss.final ? <Crown /> : <GlyphIcon name={boss.icon} />}
+        <BossPortrait boss={boss} className={boss.defeated ? "opacity-45 grayscale" : ""} />
+        {boss.defeated && <Check strokeWidth={3} className="absolute size-5 text-arise drop-shadow-[0_1px_2px_#05070d]" />}
       </span>
     </motion.div>
   );
@@ -155,8 +156,8 @@ export function GoalCard() {
           </div>
           {next ? (
             <div className="mt-2 flex items-center gap-3 rounded-2xl border border-boss/30 bg-boss/[0.07] p-3">
-              <span className="relative flex size-11 shrink-0 items-center justify-center rounded-xl border border-boss/60 bg-void/60 text-boss shadow-[0_0_18px_-4px_rgb(251_79_110/0.8)] [&>svg]:size-6">
-                {next.boss.final ? <Crown /> : <GlyphIcon name={next.boss.icon} />}
+              <span className="relative flex size-11 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-boss/60 bg-void/60 shadow-[0_0_18px_-4px_rgb(251_79_110/0.8)]">
+                <BossPortrait boss={next.boss} />
               </span>
               <div className="min-w-0 flex-1">
                 <p className="flex items-center gap-1.5 text-[11px] font-semibold tracking-wider text-boss uppercase">

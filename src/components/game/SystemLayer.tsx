@@ -1,7 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion, useReducedMotionConfig } from "motion/react";
-import { Crown, Skull, Sparkles, Swords, Trophy, X, Zap } from "lucide-react";
+import { Crown, Sparkles, Swords, Trophy, X, Zap } from "lucide-react";
 import { useEffect } from "react";
 import { createPortal } from "react-dom";
 import { RANK_META, STAT_META, type StatKey } from "@/lib/domain/game";
@@ -10,6 +10,7 @@ import { dismissOverlay, dismissToast, useSystemState, type Overlay, type Toast 
 import { cn } from "@/lib/utils/cn";
 import { useMounted } from "@/lib/hooks/useMounted";
 import { fmtDec } from "@/lib/utils/format";
+import { BossPortrait } from "@/components/game/BossPortrait";
 
 function EnergyBurst({ color, count = 28 }: { color: string; count?: number }) {
   const reduce = useReducedMotionConfig();
@@ -151,8 +152,8 @@ function OverlayContent({ overlay }: { overlay: Overlay }) {
           <EnergyBurst color="#fb4f6e" count={36} />
           <p className="label text-boss">[ Donjon ]</p>
           <motion.div initial={{ scale: 1.6, opacity: 0, rotate: -12 }} animate={{ scale: 1, opacity: 1, rotate: 0 }} transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }} className="mt-4 flex justify-center">
-            <span className="flex size-20 items-center justify-center rounded-2xl border-2 border-boss/70 bg-boss/15 shadow-[0_0_40px_rgb(251_79_110/0.6)]">
-              <Skull className="size-10 text-boss" />
+            <span className="flex size-20 items-center justify-center overflow-hidden rounded-2xl border-2 border-boss/70 bg-boss/15 shadow-[0_0_40px_rgb(251_79_110/0.6)]">
+              <BossPortrait boss={{ name: overlay.name, icon: "", final: false }} />
             </span>
           </motion.div>
           <motion.h2

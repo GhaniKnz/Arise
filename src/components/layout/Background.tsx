@@ -1,10 +1,16 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { usePathname } from "next/navigation";
 
 /** Arcane gate backdrop with restrained motion behind the interface. */
 export function Background({ particles = true }: { particles?: boolean }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const pathname = usePathname();
+  const scene = pathname.startsWith("/nutrition") ? "nutrition"
+    : pathname.startsWith("/workout") || pathname.startsWith("/session") ? "workout"
+    : /^(\/knowledge|\/settings|\/report|\/calendar|\/analytics|\/coach)/.test(pathname) ? "archive"
+    : "gate";
 
   useEffect(() => {
     if (!particles) return;
@@ -89,7 +95,7 @@ export function Background({ particles = true }: { particles?: boolean }) {
     <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden" aria-hidden>
       <div className="absolute inset-0 bg-void" />
       <div className="background-aurora absolute inset-0" />
-      <div className="background-gate absolute inset-0" />
+      <div className={`background-gate background-gate--${scene} absolute inset-0`} />
       <div className="background-veil absolute inset-0" />
       <div className="grid-bg absolute inset-0" />
       {particles && <canvas ref={canvasRef} className="absolute inset-0" />}

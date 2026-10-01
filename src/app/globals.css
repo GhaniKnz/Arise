@@ -315,6 +315,10 @@ input[type="number"] {
   animation: gate-breathe 16s ease-in-out infinite alternate;
 }
 
+.background-gate--nutrition { background-image: url("/art/background-nutrition.webp"); }
+.background-gate--workout { background-image: url("/art/background-workout.webp"); }
+.background-gate--archive { background-image: url("/art/background-archive.webp"); }
+
 .background-veil {
   background: linear-gradient(180deg, rgb(5 7 13 / 0.08) 0%, rgb(5 7 13 / 0.27) 62%, rgb(5 7 13 / 0.78) 100%);
 }
