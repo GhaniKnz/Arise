@@ -205,7 +205,7 @@ export default function OnboardingPage() {
                   <Field label="Poids actuel">
                     <NumberInput value={a.weightKg} onChange={(v) => set("weightKg", v ?? 0)} step={0.5} min={30} max={300} unit="kg" />
                   </Field>
-                  {valid.body && <p className="text-center text-xs text-ink-3">IMC : {fmtDec(bmiValue)} — indicateur populationnel, il ne distingue pas muscle et graisse.</p>}
+                  {valid.body && <p className="text-center text-xs text-ink-3">IMC : {fmtDec(bmiValue)}. Indicateur populationnel : il ne distingue pas muscle et graisse.</p>}
                 </div>
               </StepFrame>
             )}

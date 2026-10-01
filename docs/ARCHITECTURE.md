@@ -1,4 +1,4 @@
-# ARISE — Architecture
+# ARISE : architecture
 
 > Application personnelle de transformation physique : nutrition + entraînement + corps + récupération, avec une couche de progression RPG inspirée de l'esthétique « hunter system ».
 
@@ -66,8 +66,8 @@ supabase/migrations/0001_init.sql   schéma Postgres + index + RLS + bucket phot
 
 ## 3. Navigation
 
-* **Mobile** : barre du bas — Home · Nutrition · **(+)** · Workout · Progress. Le bouton central ouvre l'ajout rapide (repas, poids, séance, pas, eau, sommeil, photo). « Plus » (Calendrier, Analytics, Coach, Knowledge, Statut, Rapport, Réglages) est dans la barre du haut.
-* **Desktop (≥ 1024 px)** : sidebar verticale — Dashboard, Nutrition, Workout, Progress, Calendar, Analytics, Coach IA, Knowledge, Statut, Réglages.
+* **Mobile** : barre du bas : Home · Nutrition · **(+)** · Workout · Progress. Le bouton central ouvre l'ajout rapide (repas, poids, séance, pas, eau, sommeil, photo). « Plus » (Calendrier, Analytics, Coach, Knowledge, Statut, Rapport, Réglages) est dans la barre du haut.
+* **Desktop (≥ 1024 px)** : sidebar verticale : Dashboard, Nutrition, Workout, Progress, Calendar, Analytics, Coach IA, Knowledge, Statut, Réglages.
 * **Mode focus** (`/session`) : aucune navigation, uniquement exercice / précédent / séries / timer / suivant.
 
 ## 4. Modèle de données (IndexedDB ⇄ Postgres)

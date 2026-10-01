@@ -2,7 +2,7 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "ARISE — Level up training",
+    name: "ARISE · Level up training",
     short_name: "ARISE",
     description: "Nutrition, entraînement, corps et récupération dans un système de progression RPG.",
     lang: "fr",

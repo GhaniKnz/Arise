@@ -72,7 +72,7 @@ export function BarcodeScanner({ active, onFood }: { active: boolean; onFood: (f
     try {
       const code = await decodeBarcodeImage(file);
       if (!code) {
-        setError({ title: "Code-barres illisible", message: "Prends-le de plus près, bien net et sans reflet (les chiffres doivent être lisibles) — ou tape les chiffres ci-dessous." });
+        setError({ title: "Code-barres illisible", message: "Prends-le de plus près, bien net et sans reflet (les chiffres doivent être lisibles), ou tape les chiffres ci-dessous." });
         return;
       }
       await lookup(code);

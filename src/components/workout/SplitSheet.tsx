@@ -70,7 +70,7 @@ export function SplitSheet({ open, onClose }: { open: boolean; onClose: () => vo
                     return (
                       <span key={i} className="flex flex-col items-center gap-1 rounded-lg border border-line bg-void/40 py-1.5">
                         <span className="text-[9px] font-semibold text-ink-3">{WEEKDAYS_SHORT[i]}</span>
-                        {tpl && color ? <RoutineIcon icon={ROUTINE_TYPE_ICON[tpl.type]} color={color} className="size-5" /> : <span className="size-5 text-center text-[10px] leading-5 text-ink-3">—</span>}
+                        {tpl && color ? <RoutineIcon icon={ROUTINE_TYPE_ICON[tpl.type]} color={color} className="size-5" /> : <span className="size-5 text-center text-[10px] leading-5 text-ink-3">-</span>}
                         <span className="w-full truncate px-0.5 text-center text-[9px]" style={{ color: color ?? "var(--color-ink-3)" }}>
                           {tpl ? tpl.name : "Repos"}
                         </span>

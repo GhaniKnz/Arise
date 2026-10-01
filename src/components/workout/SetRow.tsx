@@ -146,7 +146,7 @@ export function SetRow({ set, index, previous, weighted, onCommit, onToggleDone,
           {set.warmup ? "É" : index + 1}
         </button>
         <span className="flex min-w-0 flex-col items-center text-center text-xs text-ink-3 tabular" title="Performance précédente">
-          <span className="max-w-full truncate">{previous ? (weighted && previous.weightKg > 0 ? `${fmtDec(previous.weightKg)}×${previous.reps}` : `${previous.reps} reps`) : "—"}</span>
+          <span className="max-w-full truncate">{previous ? (weighted && previous.weightKg > 0 ? `${fmtDec(previous.weightKg)}×${previous.reps}` : `${previous.reps} reps`) : "-"}</span>
           {set.done && gain && (
             <span className={cn("max-w-full truncate text-[10px] font-bold", isPR ? "text-warn" : "text-good")} aria-label={`Progression ${gainLabel(gain)} par rapport à la dernière séance`}>
               ▲ {gainLabel(gain)}

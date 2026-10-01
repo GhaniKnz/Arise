@@ -22,7 +22,7 @@ import { analysisToItems, analyzeMealPhoto, normName, photoItemsToIngredients, p
 import { useBlobUrl } from "@/lib/hooks/useBlobUrl";
 import { cue } from "@/lib/system/feedback";
 import { toast } from "@/lib/system/store";
-import { fmtDec, fmtInt } from "@/lib/utils/format";
+import { fmtDec, fmtInt, plainDashes } from "@/lib/utils/format";
 
 type EditableItem = PhotoItem;
 
@@ -225,7 +225,7 @@ function ScanScreen() {
           </Panel>
 
           <Notice tone="warn">
-            <strong>Estimation IA</strong> — vérifie les quantités pour améliorer la précision. {analysis.notes}
+            <strong>Estimation IA :</strong> vérifie les quantités pour améliorer la précision. {plainDashes(analysis.notes ?? "")}
           </Notice>
 
           <Panel className="space-y-3">
@@ -266,16 +266,24 @@ function ScanScreen() {
             {items.map((it, i) => {
               const f = it.ingredient.grams / 100;
               return (
-                <li key={it.key} className="panel flex flex-wrap items-center gap-2 p-3">
-                  <div className="min-w-0 flex-1">
+                <li key={it.key} className="panel p-3">
+                  {/* Name on its own line, quantity below: the stepper keeps a readable width on phones. */}
+                  <div className="flex items-center gap-1">
                     <TextInput
                       value={it.ingredient.name}
                       onChange={(e) => setItems((xs) => xs.map((x, j) => (j === i ? { ...x, ingredient: { ...x.ingredient, name: e.target.value } } : x)))}
                       aria-label="Nom de l'aliment"
-                      className="h-9 border-transparent bg-transparent px-1 font-medium"
+                      className="h-9 min-w-0 flex-1 border-transparent bg-transparent px-1 font-medium"
                     />
-                    <p className="flex items-center gap-2 px-1 text-[11px] text-ink-3">
-                      {fmtInt(it.ingredient.per100.kcal * f)} kcal · P {fmtDec(it.ingredient.per100.protein * f)} · G {fmtDec(it.ingredient.per100.carbs * f)} · L {fmtDec(it.ingredient.per100.fat * f)}
+                    <IconButton label={`Retirer ${it.ingredient.name}`} size="sm" onClick={() => setItems((xs) => xs.filter((_, j) => j !== i))}>
+                      <X />
+                    </IconButton>
+                  </div>
+                  <div className="mt-1 flex items-center gap-3">
+                    <p className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-1 px-1 text-[11px] text-ink-3">
+                      <span>
+                        <span className="font-semibold text-ink-2">{fmtInt(it.ingredient.per100.kcal * f)} kcal</span> · P {fmtDec(it.ingredient.per100.protein * f)} · G {fmtDec(it.ingredient.per100.carbs * f)} · L {fmtDec(it.ingredient.per100.fat * f)}
+                      </span>
                       {it.known ? (
                         <Badge color="#34d399">
                           <History className="mr-0.5 inline size-3" /> Connu
@@ -284,21 +292,18 @@ function ScanScreen() {
                         it.confidence && <Badge color={CONF_META[it.confidence][1]}>{CONF_META[it.confidence][0]}</Badge>
                       )}
                     </p>
+                    <NumberInput
+                      value={it.ingredient.grams}
+                      onChange={(v) => setItems((xs) => xs.map((x, j) => (j === i ? { ...x, ingredient: { ...x.ingredient, grams: v ?? 0 } } : x)))}
+                      step={10}
+                      min={0}
+                      max={3000}
+                      unit="g"
+                      decimals={0}
+                      className="w-48 shrink-0"
+                      ariaLabel={`Quantité de ${it.ingredient.name}`}
+                    />
                   </div>
-                  <NumberInput
-                    value={it.ingredient.grams}
-                    onChange={(v) => setItems((xs) => xs.map((x, j) => (j === i ? { ...x, ingredient: { ...x.ingredient, grams: v ?? 0 } } : x)))}
-                    step={10}
-                    min={0}
-                    max={3000}
-                    unit="g"
-                    decimals={0}
-                    className="w-40"
-                    ariaLabel={`Quantité de ${it.ingredient.name}`}
-                  />
-                  <IconButton label={`Retirer ${it.ingredient.name}`} size="sm" onClick={() => setItems((xs) => xs.filter((_, j) => j !== i))}>
-                    <X />
-                  </IconButton>
                 </li>
               );
             })}

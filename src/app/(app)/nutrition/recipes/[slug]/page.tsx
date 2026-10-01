@@ -114,10 +114,10 @@ export default function RecipeDetailPage() {
 
   const copyList = async () => {
     if (!shop) return;
-    const lines = [`Courses — ${recipe.name} (${portions ?? recipe.servings} portions)`];
+    const lines = [`Courses : ${recipe.name} (${portions ?? recipe.servings} portions)`];
     for (const [aisle, items] of shop.byAisle) {
       lines.push(`\n${AISLE_META[aisle].label}`);
-      for (const l of items) lines.push(`☐ ${l.item.name} — ${l.packs} × ${l.item.pack} (${euro(l.cost)})`);
+      for (const l of items) lines.push(`☐ ${l.item.name} : ${l.packs} × ${l.item.pack} (${euro(l.cost)})`);
     }
     lines.push(`\nTotal estimé : ${euro(shop.total)} (${STORE_TIERS[tier].label.toLowerCase()})`);
     try {
@@ -384,7 +384,7 @@ export default function RecipeDetailPage() {
 
       {credit && (
         <p className="mt-6 text-center text-[11px] text-ink-3">
-          Photo : {credit.author} —{" "}
+          Photo : {credit.author} ·{" "}
           <a href={credit.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-0.5 text-arise hover:underline">
             {credit.source} <ExternalLink className="size-3" />
           </a>{" "}

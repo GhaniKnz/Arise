@@ -1,4 +1,5 @@
 import { Fragment, type ReactNode } from "react";
+import { plainDashes } from "@/lib/utils/format";
 
 /** Minimal, safe markdown subset: paragraphs, "-"/"•"/"1." lists and **bold**. No HTML injection. */
 function inline(text: string): ReactNode[] {
@@ -7,7 +8,7 @@ function inline(text: string): ReactNode[] {
 }
 
 export function RichText({ text }: { text: string }) {
-  const blocks = text.replace(/\r/g, "").split(/\n{2,}/);
+  const blocks = plainDashes(text.replace(/\r/g, "")).split(/\n{2,}/);
   return (
     <div className="space-y-2">
       {blocks.map((b, bi) => {

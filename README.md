@@ -1,4 +1,4 @@
-# ARISE — système de progression personnel
+# ARISE : système de progression personnel
 
 Application web (PWA) de suivi nutrition, musculation, cardio et composition corporelle, habillée comme une « fenêtre de statut » de chasseur : chaque habitude rapporte de l'XP, fait monter des statistiques et un rang (E → S).
 

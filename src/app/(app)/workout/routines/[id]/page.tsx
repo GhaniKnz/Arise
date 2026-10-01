@@ -124,7 +124,7 @@ export default function RoutineEditorPage() {
           {isNew ? (
             <Field label="Partir d'un modèle (optionnel)">
               <Select defaultValue="" onChange={(e) => applyTemplate(e.target.value)}>
-                <option value="">—</option>
+                <option value="">Aucun</option>
                 {Object.values(TEMPLATES).map((t) => (
                   <option key={t.key} value={t.key}>
                     {t.name}

@@ -80,7 +80,8 @@ export function NumberInput({ value, onChange, step = 1, min, max, unit, placeho
           <Minus className="size-4" />
         </button>
       )}
-      <div className="relative min-w-0 flex-1">
+      {/* Container query: in a narrow field the unit hides so the number stays readable. */}
+      <div className="@container relative min-w-0 flex-1">
         <input
           id={id}
           inputMode="decimal"
@@ -105,9 +106,9 @@ export function NumberInput({ value, onChange, step = 1, min, max, unit, placeho
             if (v != null) onChange(v);
             else if (e.target.value.trim() === "") onChange(undefined);
           }}
-          className={cn(inputBase, h, "text-center font-display font-semibold tabular", unit && "pr-10")}
+          className={cn(inputBase, h, "pl-2 text-center font-display font-semibold tabular", unit ? "pr-8 @max-[5.5rem]:pr-2" : "pr-2")}
         />
-        {unit && <span className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-xs text-ink-3">{unit}</span>}
+        {unit && <span className="pointer-events-none absolute top-1/2 right-2.5 -translate-y-1/2 text-xs text-ink-3 @max-[5.5rem]:hidden">{unit}</span>}
       </div>
       {stepper && (
         <button type="button" onClick={() => bump(1)} aria-label="Augmenter" className={cn("flex w-11 shrink-0 items-center justify-center rounded-xl border border-line-strong bg-deep text-ink-2 active:scale-95", size === "lg" && "w-13")}>

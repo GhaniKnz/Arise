@@ -55,9 +55,9 @@ export function WeightPanel() {
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
         <StatTile label="Poids actuel" icon={<Scale />} value={fmtDec(trend.latest?.value)} unit="kg" hint={trend.latest ? formatShort(trend.latest.date) : undefined} />
         <StatTile label="Moyenne 7 jours" icon={<Activity />} value={fmtDec(trend.average7)} unit="kg" accent="var(--color-arise)" />
-        <StatTile label="Évolution 7 j" icon={<CalendarRange />} accent="var(--color-violet-2)" value={trend.weekChange == null ? "—" : fmtSigned(trend.weekChange, 1)} unit="kg" />
-        <StatTile label="Tendance" icon={<TrendingDown />} accent="var(--color-cyan)" value={trend.weeklyRate == null ? "—" : fmtSigned(trend.weeklyRate, 2)} unit="kg/sem" hint="régression 3 semaines" />
-        <StatTile label="IMC" icon={<Gauge />} accent="var(--color-ink-2)" value={bmiValue ? fmtDec(bmiValue) : "—"} hint={bmiValue ? bmiLabel(bmiValue) : undefined} className="col-span-2 sm:col-span-1" />
+        <StatTile label="Évolution 7 j" icon={<CalendarRange />} accent="var(--color-violet-2)" value={trend.weekChange == null ? "-" : fmtSigned(trend.weekChange, 1)} unit="kg" />
+        <StatTile label="Tendance" icon={<TrendingDown />} accent="var(--color-cyan)" value={trend.weeklyRate == null ? "-" : fmtSigned(trend.weeklyRate, 2)} unit="kg/sem" hint="régression 3 semaines" />
+        <StatTile label="IMC" icon={<Gauge />} accent="var(--color-ink-2)" value={bmiValue ? fmtDec(bmiValue) : "-"} hint={bmiValue ? bmiLabel(bmiValue) : undefined} className="col-span-2 sm:col-span-1" />
       </div>
 
       <Panel>

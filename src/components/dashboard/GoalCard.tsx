@@ -204,7 +204,7 @@ export function GoalCard() {
             [losing ? "Perdu" : "Variation", `${fmtDec(Math.abs(g.done))} kg`, losing ? <TrendingDown key="i" /> : <TrendingUp key="i" />, "text-ink"],
             ["Restant", `${fmtDec(Math.abs(g.remaining))} kg`, <Flag key="i" />, "text-ink"],
             ["Progression", `${Math.round(g.pct * 100)} %${bosses.length ? ` · ${defeatedCount}/${bosses.length}` : ""}`, <Percent key="i" />, "text-arise"],
-            ["Estimation", g.projection.etaDate ? `~${formatShort(g.projection.etaDate)}` : "—", <CalendarClock key="i" />, "text-ink"],
+            ["Estimation", g.projection.etaDate ? `~${formatShort(g.projection.etaDate)}` : "-", <CalendarClock key="i" />, "text-ink"],
           ] as const
         ).map(([label, value, icon, tone]) => (
           <div key={label} className="rounded-xl bg-white/[0.03] px-3 py-2">

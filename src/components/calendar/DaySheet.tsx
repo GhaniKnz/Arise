@@ -42,7 +42,7 @@ export function DaySheet({ date, onClose }: { date: DayKey | null; onClose: () =
               <p className="flex items-center gap-1.5 text-[11px] text-ink-3">
                 <Scale className="size-3.5" /> Poids · pas
               </p>
-              <p className="font-display text-lg font-semibold text-ink">{l.day.weightKg ? `${fmtDec(l.day.weightKg)} kg` : "—"}</p>
+              <p className="font-display text-lg font-semibold text-ink">{l.day.weightKg ? `${fmtDec(l.day.weightKg)} kg` : "-"}</p>
               <p className="text-[11px] text-ink-3">
                 {fmtInt(l.day.steps ?? 0)} pas · sommeil {fmtSleep(l.day.sleepMin)}
               </p>

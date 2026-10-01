@@ -106,7 +106,7 @@ export default function RecipesPage() {
       )}
 
       <p className="mt-6 text-center text-[11px] text-ink-3">
-        Prix indicatifs (estimations 2026, varient selon le magasin et les promos) — personnalise-les dans chaque ingrédient. Photos sous licence Creative Commons, crédits sur chaque fiche.
+        Prix indicatifs (estimations 2026, varient selon le magasin et les promos). Personnalise-les dans chaque ingrédient. Photos sous licence Creative Commons, crédits sur chaque fiche.
       </p>
     </>
   );

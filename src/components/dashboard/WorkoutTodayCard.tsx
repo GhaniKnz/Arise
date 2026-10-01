@@ -62,7 +62,7 @@ export function WorkoutTodayCard() {
         <div className="flex items-center gap-3 rounded-xl border border-good/30 bg-good/10 p-3">
           <CheckCircle2 className="size-8 shrink-0 text-good" />
           <div className="min-w-0 flex-1">
-            <p className="truncate font-semibold text-ink">{doneToday.map((s) => s.name).join(" + ")} — terminé</p>
+            <p className="truncate font-semibold text-ink">{doneToday.map((s) => s.name).join(" + ")} · terminé</p>
             <p className="text-xs text-ink-2">
               {fmtDuration(doneToday.reduce((a, s) => a + sessionMinutes(s), 0) * 60)} · {doneSets.length} séries · {fmtInt(doneSets.reduce((a, s) => a + s.weightKg * s.reps, 0))} kg de volume
             </p>

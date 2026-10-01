@@ -17,7 +17,7 @@ import type { WeeklyReport } from "@/lib/db/types";
 import { analyzeWeek, weekStats, type WeekStats } from "@/lib/domain/report";
 import { addDays, formatShort, weekStart, weekdayIndex } from "@/lib/utils/date";
 import { cn } from "@/lib/utils/cn";
-import { fmtDec, fmtInt, fmtSigned, fmtSleep } from "@/lib/utils/format";
+import { fmtDec, fmtInt, fmtSigned, fmtSleep, plainDashes } from "@/lib/utils/format";
 
 function Row({ label, cur, prev, format, betterUp, unit = "" }: { label: string; cur: number | null; prev: number | null | undefined; format: (v: number) => string; betterUp?: boolean; unit?: string }) {
   const delta = cur != null && prev != null ? cur - prev : null;
@@ -26,7 +26,7 @@ function Row({ label, cur, prev, format, betterUp, unit = "" }: { label: string;
     <div className="flex items-center justify-between gap-3 border-b border-line/50 py-2.5 last:border-0">
       <span className="text-sm text-ink-2">{label}</span>
       <span className="flex items-baseline gap-2">
-        <span className="font-display text-lg font-semibold text-ink">{cur == null ? "—" : format(cur)}</span>
+        <span className="font-display text-lg font-semibold text-ink">{cur == null ? "-" : format(cur)}</span>
         {delta != null && Math.abs(delta) > 0.001 && <span className={cn("text-xs", good == null ? "text-ink-3" : good ? "text-good" : "text-warn")}>{fmtSigned(delta, Math.abs(delta) < 10 ? 1 : 0, unit)}</span>}
       </span>
     </div>
@@ -48,7 +48,8 @@ export default function ReportPage() {
   const analysis = useMemo(() => (profile ? analyzeWeek(cur, prev, profile.targets, profile.goal, currentWeight ?? profile.startWeightKg) : null), [cur, prev, profile, currentWeight]);
   const ai: ReportAnalysis | null = useMemo(() => {
     try {
-      return stored?.aiText ? (JSON.parse(stored.aiText) as ReportAnalysis) : null;
+      // Dashes only ever sit inside JSON strings, so the filter keeps the JSON valid.
+      return stored?.aiText ? (JSON.parse(plainDashes(stored.aiText)) as ReportAnalysis) : null;
     } catch {
       return null;
     }
@@ -102,7 +103,7 @@ export default function ReportPage() {
         <Row label="Poids (moy. 7 j)" cur={cur.weightEnd} prev={prev.weightEnd} format={(v) => `${fmtDec(v)} kg`} betterUp={profile.goal === "bulk"} />
         <div className="flex items-center justify-between gap-3 border-b border-line/50 py-2.5">
           <span className="text-sm text-ink-2">Variation de la semaine</span>
-          <span className="font-display text-lg font-semibold text-ink">{cur.weightDelta == null ? "—" : fmtSigned(cur.weightDelta, 1, "kg")}</span>
+          <span className="font-display text-lg font-semibold text-ink">{cur.weightDelta == null ? "-" : fmtSigned(cur.weightDelta, 1, "kg")}</span>
         </div>
         <Row label="Calories moyennes" cur={cur.avgKcal} prev={prev.avgKcal} format={(v) => `${fmtInt(v)} kcal`} />
         <Row label="Protéines" cur={cur.avgProtein} prev={prev.avgProtein} format={(v) => `${fmtInt(v)} g/j`} betterUp />

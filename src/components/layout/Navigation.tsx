@@ -52,7 +52,7 @@ export function Sidebar() {
   return (
     <aside className="fixed inset-y-0 left-0 z-40 hidden w-64 flex-col border-r border-line bg-abyss/70 backdrop-blur-xl lg:flex">
       <div className="px-5 pt-6 pb-4">
-        <Link href="/" aria-label="ARISE — accueil">
+        <Link href="/" aria-label="Accueil ARISE">
           <AriseWordmark />
         </Link>
       </div>
@@ -115,9 +115,9 @@ export function TopBar() {
   return (
     <header className="sticky top-0 z-30 flex h-14 items-center justify-between gap-3 border-b border-line/60 bg-void/70 px-4 pt-[var(--safe-top)] backdrop-blur-xl lg:hidden" style={{ height: "calc(3.5rem + var(--safe-top))" }}>
       <span className="scanline" aria-hidden />
-      <Link href="/" className="touch-target flex items-center gap-2" aria-label="ARISE — accueil">
+      <Link href="/" className="touch-target flex items-center gap-2" aria-label="Accueil ARISE">
         <AriseMark className="aura size-7" />
-        <span className="text-shimmer font-display text-[15px] font-bold tracking-[0.3em] max-[359px]:hidden">ARISE</span>
+        <span className="text-shimmer font-display text-[15px] font-bold tracking-[0.3em] max-[374px]:hidden">ARISE</span>
       </Link>
       <div className="flex items-center gap-1.5">
         {profile && (

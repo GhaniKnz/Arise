@@ -50,7 +50,7 @@ export function ActivityCard() {
             <Dumbbell className="size-4 text-good" /> Entraînement
           </span>
           <span className="truncate font-semibold text-ink">
-            {done ? `${done.name} — terminé` : active ? `${active.name} — en cours` : d?.workoutPlanned ? "Prévu" : "Repos"}
+            {done ? `${done.name} · terminé` : active ? `${active.name} · en cours` : d?.workoutPlanned ? "Prévu" : "Repos"}
           </span>
         </li>
         {(done || active) && (
@@ -98,7 +98,7 @@ export function DayStateCard() {
           <span className="flex items-center gap-1.5 text-[11px] text-ink-3">
             <Zap className="size-3.5 text-warn" /> Énergie
           </span>
-          <span className="mt-0.5 block font-display text-lg font-semibold text-ink">{d?.energy != null ? `${d.energy}/10` : "—"}</span>
+          <span className="mt-0.5 block font-display text-lg font-semibold text-ink">{d?.energy != null ? `${d.energy}/10` : "-"}</span>
         </button>
         <div className="rounded-xl border border-line bg-white/[0.02] p-3">
           <span className="flex items-center gap-1.5 text-[11px] text-ink-3">

@@ -38,7 +38,7 @@ export async function POST(req: Request) {
         try {
           for await (const text of chunks) controller.enqueue(encoder.encode(text));
         } catch {
-          controller.enqueue(encoder.encode("\n\n[Connexion interrompue avec l'IA — réessaie.]"));
+          controller.enqueue(encoder.encode("\n\n[Connexion interrompue avec l'IA, réessaie.]"));
         } finally {
           controller.close();
         }
@@ -85,7 +85,7 @@ export async function POST(req: Request) {
         if (final.stop_reason === "refusal") controller.enqueue(encoder.encode(`\n\n${REFUSAL_MESSAGE}`));
         if (final.stop_reason === "max_tokens") controller.enqueue(encoder.encode("\n\n…"));
       } catch {
-        controller.enqueue(encoder.encode("\n\n[Connexion interrompue avec l'IA — réessaie.]"));
+        controller.enqueue(encoder.encode("\n\n[Connexion interrompue avec l'IA, réessaie.]"));
       } finally {
         controller.close();
       }

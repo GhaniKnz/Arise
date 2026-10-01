@@ -42,7 +42,7 @@ export default function SettingsPage() {
           <PanelHeader title="À propos" icon={<Info />} />
           <div className="space-y-2 text-sm text-ink-2">
             <p>
-              <strong className="text-ink">ARISE</strong> — système de progression personnel. Les calculs (calories, macros, maintenance adaptative, projections) sont des estimations à ajuster selon ton évolution réelle.
+              <strong className="text-ink">ARISE</strong> : système de progression personnel. Les calculs (calories, macros, maintenance adaptative, projections) sont des estimations à ajuster selon ton évolution réelle.
             </p>
             <p className="text-ink-3">
               Données nutritionnelles de référence : tables CIQUAL (ANSES) et USDA ; produits du commerce : Open Food Facts (licence ODbL). ARISE ne fournit pas d&apos;avis médical. Univers visuel original inspiré de l&apos;esthétique « hunter system », sans affiliation.

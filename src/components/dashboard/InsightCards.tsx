@@ -43,7 +43,7 @@ export function WeightTrendCard() {
             </div>
             <div>
               <p className="text-[11px] text-ink-3">7 derniers jours</p>
-              <p className={cn("font-display text-xl font-bold", change == null ? "text-ink-3" : "text-ink")}>{change == null ? "—" : fmtSigned(change, 1, "kg")}</p>
+              <p className={cn("font-display text-xl font-bold", change == null ? "text-ink-3" : "text-ink")}>{change == null ? "-" : fmtSigned(change, 1, "kg")}</p>
             </div>
           </div>
           <Link href="/progress" className="mt-3 block" aria-label="Voir le graphique du poids">

@@ -22,7 +22,7 @@ export default function KnowledgePage() {
 
   return (
     <>
-      <PageHeader kicker="Knowledge" title="Science de la transformation" subtitle="Conseils tirés de méta-analyses, consensus et positions officielles — avec leurs sources." />
+      <PageHeader kicker="Knowledge" title="Science de la transformation" subtitle="Conseils tirés de méta-analyses, consensus et positions officielles, avec leurs sources." />
       <Panel className="mb-4">
         <p className="label mb-2">Niveaux de preuve</p>
         <ul className="grid grid-cols-1 gap-2 sm:grid-cols-3">
